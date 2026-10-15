@@ -1,0 +1,6 @@
+{
+  "name": "DermEsthetic Pro - Diagnostic Peau & Analyse Cosmétique",
+  "description": "Application professionnelle pour esthéticiennes : diagnostic clinique visage et corps, scanner de code-barre et analyse INCI des produits cosmétiques avec détection des substances à risque, protocoles cabine et ordonnances sur-mesure.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

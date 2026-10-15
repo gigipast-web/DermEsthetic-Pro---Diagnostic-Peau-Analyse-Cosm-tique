@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DermEsthetic Pro - Mode Hors-Ligne</title>
+  <meta name="theme-color" content="#881337">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #faf9f6;
+      color: #1c1917;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 90vh;
+      text-align: center;
+    }
+    .card {
+      background: #ffffff;
+      padding: 32px 24px;
+      border-radius: 20px;
+      border: 1px solid #e7e5e4;
+      max-width: 420px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #ffe4e6;
+      color: #881337;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      margin: 0 0 12px;
+      color: #1c1917;
+    }
+    p {
+      font-size: 14px;
+      color: #57534e;
+      line-height: 1.6;
+      margin: 0 0 24px;
+    }
+    button {
+      background: #881337;
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #4c0519;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">Mode Hors-Ligne</div>
+    <h1>DermEsthetic Pro</h1>
+    <p>Vous êtes actuellement déconnectée d'Internet. L'application reste accessible et vos données locales en cabine sont sauvegardées.</p>
+    <button onclick="window.location.reload()">Réessayer la connexion</button>
+  </div>
+</body>
+</html>

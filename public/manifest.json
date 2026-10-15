@@ -1,0 +1,64 @@
+{
+  "id": "/",
+  "name": "DermEsthetic Pro - Diagnostic Peau & Analyse Cosmétique",
+  "short_name": "DermEsthetic",
+  "description": "Application professionnelle pour esthéticiennes : diagnostic clinique visage et corps, scanner de code-barre et analyse INCI des produits cosmétiques, protocoles cabine et ordonnances sur-mesure.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#881337",
+  "background_color": "#faf9f6",
+  "categories": ["beauty", "lifestyle", "business", "health"],
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scanner Cosmétique",
+      "short_name": "Scanner",
+      "description": "Scanner de code-barre et analyseur INCI",
+      "url": "/?tab=scanner",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Diagnostic Peau",
+      "short_name": "Diagnostic",
+      "description": "Bilan cutané visage et corps",
+      "url": "/?tab=diagnostic",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Fiches Clientes",
+      "short_name": "Clientes",
+      "description": "Suivi et dossiers de soins clientes",
+      "url": "/?tab=clients",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
