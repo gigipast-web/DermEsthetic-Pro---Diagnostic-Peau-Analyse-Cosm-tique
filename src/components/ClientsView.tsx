@@ -47,6 +47,8 @@ interface Props {
   onUpdateClient: (client: ClientProfile) => void;
   onDeleteClient: (id: string) => void;
   onOpenDiagnosticWithClient: (client: ClientProfile) => void;
+  instituteName?: string;
+  estheticianName?: string;
 }
 
 export const ClientsView: React.FC<Props> = ({
@@ -56,6 +58,8 @@ export const ClientsView: React.FC<Props> = ({
   onUpdateClient,
   onDeleteClient,
   onOpenDiagnosticWithClient,
+  instituteName,
+  estheticianName,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
@@ -1131,6 +1135,8 @@ export const ClientsView: React.FC<Props> = ({
         <PrintablePrescriptionModal
           report={printReport}
           onClose={() => setPrintReport(null)}
+          instituteName={instituteName}
+          estheticianName={estheticianName}
         />
       )}
     </div>

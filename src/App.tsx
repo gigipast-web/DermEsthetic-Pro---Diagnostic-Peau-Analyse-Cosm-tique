@@ -4,9 +4,12 @@ import { ProductScannerView } from './components/ProductScannerView';
 import { SkinDiagnosticView } from './components/SkinDiagnosticView';
 import { ActivesAndToxicGuideView } from './components/ActivesAndToxicGuideView';
 import { ClientsView } from './components/ClientsView';
-import { ClientProfile, DiagnosticReport, ProductAnalysisResult } from './types';
+import { ClientProfile, DiagnosticReport, ProductAnalysisResult, PractitionerUser } from './types';
 import { SAMPLE_CLIENTS, VERIFIED_PRODUCTS_CATALOG } from './data/cosmeticsDatabase';
 import { Sparkles, ShieldCheck, HeartHandshake, Award } from 'lucide-react';
+import { getCurrentUser, logoutUser } from './services/authService';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
 
 const INITIAL_DIAGNOSTICS: DiagnosticReport[] = [
   {
@@ -144,6 +147,14 @@ const INITIAL_DIAGNOSTICS: DiagnosticReport[] = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('scanner');
+
+  // Practitioner user state & auth modals
+  const [currentUser, setCurrentUser] = useState<PractitionerUser | null>(() => {
+    return getCurrentUser();
+  });
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(() => !getCurrentUser());
+  const [authCanDismiss, setAuthCanDismiss] = useState<boolean>(() => !!getCurrentUser());
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   // Client states with local storage persistence
   const [clients, setClients] = useState<ClientProfile[]>(() => {
@@ -283,12 +294,46 @@ export default function App() {
     setActiveTab('diagnostic');
   };
 
+  const handleAuthSuccess = (user: PractitionerUser) => {
+    setCurrentUser(user);
+    setShowAuthModal(false);
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+    setShowProfileModal(false);
+    setAuthCanDismiss(false);
+    setShowAuthModal(true);
+  };
+
+  const handleOpenRegisterNew = () => {
+    setAuthCanDismiss(true);
+    setShowAuthModal(true);
+  };
+
+  const handleSwitchAccount = (user: PractitionerUser) => {
+    setCurrentUser(user);
+    setShowProfileModal(false);
+  };
+
+  const handleUserUpdated = (updated: PractitionerUser) => {
+    setCurrentUser(updated);
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col font-sans text-stone-900 selection:bg-rose-200 selection:text-rose-950">
       {/* Top Professional Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        currentUser={currentUser}
+        instituteName={currentUser ? currentUser.instituteName : undefined}
+        onOpenProfile={() => setShowProfileModal(true)}
+        onOpenAuth={() => {
+          setAuthCanDismiss(true);
+          setShowAuthModal(true);
+        }}
       />
 
       {/* Main Content View Switcher */}
@@ -304,6 +349,8 @@ export default function App() {
           <SkinDiagnosticView
             clients={clients}
             onSaveReport={handleSaveDiagnosticReport}
+            instituteName={currentUser ? currentUser.instituteName : undefined}
+            estheticianName={currentUser ? `${currentUser.fullName} (${currentUser.role})` : undefined}
           />
         )}
 
@@ -317,6 +364,8 @@ export default function App() {
             onUpdateClient={handleUpdateClient}
             onDeleteClient={handleDeleteClient}
             onOpenDiagnosticWithClient={handleOpenDiagnosticWithClient}
+            instituteName={currentUser ? currentUser.instituteName : undefined}
+            estheticianName={currentUser ? `${currentUser.fullName} (${currentUser.role})` : undefined}
           />
         )}
       </main>
@@ -336,15 +385,54 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-stone-500 text-[11px]">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-stone-500 text-[11px]">
             <span>Base Open Beauty Facts connectée</span>
             <span>·</span>
             <span>Diagnostic Multimodal Visage & Corps</span>
             <span>·</span>
-            <span>Ordonnances imprimables A4</span>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-rose-800 hover:text-rose-950 underline font-medium"
+            >
+              Règles de confidentialité
+            </a>
+            <span>·</span>
+            <a
+              href="/telecharger-icones"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-800 hover:text-amber-950 underline font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200"
+            >
+              📥 Icônes Google Play Store
+            </a>
           </div>
         </div>
       </footer>
+
+      {/* Authentication & Registration Gate Modal */}
+      {(showAuthModal || !currentUser) && (
+        <AuthModal
+          onSuccess={handleAuthSuccess}
+          canDismiss={!!currentUser && authCanDismiss}
+          onClose={() => setShowAuthModal(false)}
+        />
+      )}
+
+      {/* Practitioner & Institute Profile Modal */}
+      {showProfileModal && currentUser && (
+        <UserProfileModal
+          currentUser={currentUser}
+          clients={clients}
+          diagnostics={diagnostics}
+          onClose={() => setShowProfileModal(false)}
+          onUserUpdated={handleUserUpdated}
+          onLogout={handleLogout}
+          onSwitchAccount={handleSwitchAccount}
+          onOpenNewAccountModal={handleOpenRegisterNew}
+        />
+      )}
     </div>
   );
 }

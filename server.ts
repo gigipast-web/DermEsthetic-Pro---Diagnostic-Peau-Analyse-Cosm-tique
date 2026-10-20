@@ -43,6 +43,20 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public', 'sw.js'));
 });
 
+// Privacy Policy endpoint (Google Play Store & PWABuilder compliance)
+app.get(['/privacy', '/privacy.html', '/politique-de-confidentialite'], (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  res.sendFile(path.resolve(__dirname, 'public', 'privacy.html'));
+});
+
+// Google Play Console Assets & Icons download hub
+app.get(['/telecharger-icones', '/telecharger-icones.html', '/google-play-assets'], (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  res.sendFile(path.resolve(__dirname, 'public', 'telecharger-icones.html'));
+});
+
 app.use(
   express.static(path.resolve(__dirname, 'public'), {
     setHeaders: (res) => {

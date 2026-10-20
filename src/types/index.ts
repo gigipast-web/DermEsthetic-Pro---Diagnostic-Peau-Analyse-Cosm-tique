@@ -218,3 +218,20 @@ export interface ClientProfile {
   privateNotes: PrivateClientNote[];
   progressPhotos?: SkinProgressPhoto[];
 }
+
+export interface PractitionerUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string; // e.g. "Esthéticienne D.E. & Cornéothérapeute"
+  instituteName: string; // e.g. "Institut Derm'Esthétique & Spa"
+  password?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  certifications?: string[];
+  registeredAt: string;
+  lastLoginAt: string;
+  avatarColor?: string;
+  isDemo?: boolean;
+}

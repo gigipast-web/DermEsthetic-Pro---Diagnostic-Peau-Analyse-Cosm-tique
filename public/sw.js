@@ -9,11 +9,14 @@ const PRECACHE_ASSETS = [
   '/index.html',
   '/manifest.json',
   OFFLINE_URL,
+  '/privacy.html',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
   '/pwa-maskable-512x512.png',
   '/apple-touch-icon.png',
   '/icon.svg',
+  '/screenshot-desktop.png',
+  '/screenshot-mobile.png',
 ];
 
 // 1. Install event: pre-caches critical assets and the offline fallback page

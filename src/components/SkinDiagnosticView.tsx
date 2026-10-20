@@ -33,6 +33,8 @@ import { PrintablePrescriptionModal } from './PrintablePrescriptionModal';
 interface Props {
   clients: ClientProfile[];
   onSaveReport?: (report: DiagnosticReport, clientId?: string) => void;
+  instituteName?: string;
+  estheticianName?: string;
 }
 
 const FACE_ZONES = [
@@ -93,7 +95,12 @@ const SENSATIONS_OPTIONS = [
   'Rugosité au toucher',
 ];
 
-export const SkinDiagnosticView: React.FC<Props> = ({ clients, onSaveReport }) => {
+export const SkinDiagnosticView: React.FC<Props> = ({
+  clients,
+  onSaveReport,
+  instituteName,
+  estheticianName,
+}) => {
   const [treatmentArea, setTreatmentArea] = useState<TreatmentArea>('visage');
   const [selectedZone, setSelectedZone] = useState<string>('Visage Complet (Global)');
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
@@ -958,6 +965,8 @@ export const SkinDiagnosticView: React.FC<Props> = ({ clients, onSaveReport }) =
         <PrintablePrescriptionModal
           report={report}
           onClose={() => setShowPrintModal(false)}
+          instituteName={instituteName}
+          estheticianName={estheticianName}
         />
       )}
     </div>

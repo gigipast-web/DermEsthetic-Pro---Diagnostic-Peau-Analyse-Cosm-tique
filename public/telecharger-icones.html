@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Téléchargement des Ressources Graphiques Google Play Console · DermEsthetic Pro</title>
+  <meta name="description" content="Téléchargez toutes les icônes, bannières et captures d'écran requises pour la publication de DermEsthetic Pro sur Google Play Console.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #881337;
+      --primary-dark: #4c0519;
+      --primary-light: #fff1f2;
+      --gold: #d97706;
+      --text-main: #1c1917;
+      --text-muted: #57534e;
+      --bg: #fafaf9;
+      --card-bg: #ffffff;
+      --border: #e7e5e4;
+      --success: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: linear-gradient(135deg, #4c0519 0%, #881337 60%, #1c1917 100%);
+      color: #ffffff;
+      border-radius: 24px;
+      padding: 40px 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 30px -5px rgba(136, 19, 55, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(254, 240, 138, 0.4);
+      color: #fef08a;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .header-card p {
+      color: #fecdd3;
+      font-size: 15px;
+      max-width: 680px;
+      margin-bottom: 24px;
+    }
+
+    .btn-zip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+      color: #4c0519;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-zip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card.highlight {
+      border: 2px solid var(--primary);
+      position: relative;
+    }
+
+    .tag-mandatory {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+
+    .preview-box {
+      background: #f5f5f4;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      min-height: 180px;
+    }
+
+    .preview-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .card-specs {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .card-specs span {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 16px;
+      background: var(--primary);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 700;
+      border-radius: 10px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-download:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: #f5f5f4;
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #e7e5e4;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .instructions-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+
+    .instructions-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .steps-list {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+
+    .steps-list li {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 36px;
+      margin-bottom: 16px;
+      font-size: 14.5px;
+    }
+
+    .steps-list li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 800;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .back-nav {
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .back-nav a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .back-nav a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-card">
+      <div class="badge">Google Play Console · Prêt à l'import</div>
+      <h1>Ressources Graphiques Google Play Store</h1>
+      <p>
+        Téléchargez ci-dessous l'ensemble complet des icônes, bannières et éléments graphiques officiels exigés par la Google Play Console pour publier <strong>DermEsthetic Pro</strong>.
+      </p>
+      <a href="/google-play-store-assets.zip" download="DermEstheticPro-GooglePlay-Assets.zip" class="btn-zip">
+        📦 Télécharger tout le Pack (.ZIP)
+      </a>
+    </div>
+
+    <div class="grid">
+      <!-- 1. Icône Google Play Store 512x512 -->
+      <div class="card highlight">
+        <span class="tag-mandatory">Obligatoire</span>
+        <div>
+          <div class="preview-box">
+            <img src="/google-play-icon-512x512.png" alt="Icône Google Play DermEsthetic Pro" style="width: 140px; height: 140px;">
+          </div>
+          <h3 class="card-title">1. Icône de l'application</h3>
+          <div class="card-specs">
+            <span>• <strong>Dimensions :</strong> 512 × 512 pixels (exact)</span>
+            <span>• <strong>Format :</strong> PNG 32 bits (avec canal alpha)</span>
+            <span>• <strong>Destination :</strong> Play Console &gt; Fiche de l'application &gt; Icône de l'application</span>
+          </div>
+        </div>
+        <a href="/google-play-icon-512x512.png" download="Icone-Application-512x512.png" class="btn-download">
+          ⬇ Télécharger l'icône (512x512 PNG)
+        </a>
+      </div>
+
+      <!-- 2. Feature Graphic 1024x500 -->
+      <div class="card highlight">
+        <span class="tag-mandatory">Obligatoire</span>
+        <div>
+          <div class="preview-box">
+            <img src="/google-play-feature-graphic.png" alt="Graphique de fonctionnalité DermEsthetic Pro" style="max-height: 140px; object-fit: cover;">
+          </div>
+          <h3 class="card-title">2. Graphique de fonctionnalité</h3>
+          <div class="card-specs">
+            <span>• <strong>Dimensions :</strong> 1024 × 500 pixels (exact)</span>
+            <span>• <strong>Format :</strong> PNG 24/32 bits</span>
+            <span>• <strong>Destination :</strong> Play Console &gt; Fiche de l'application &gt; Graphique de fonctionnalité</span>
+          </div>
+        </div>
+        <a href="/google-play-feature-graphic.png" download="Graphique-Fonctionnalite-1024x500.png" class="btn-download">
+          ⬇ Télécharger la bannière (1024x500 PNG)
+        </a>
+      </div>
+
+      <!-- 3. Icône Adaptative Maskable -->
+      <div class="card">
+        <div>
+          <div class="preview-box">
+            <img src="/pwa-maskable-512x512.png" alt="Icône adaptative maskable" style="width: 130px; height: 130px; border-radius: 50%;">
+          </div>
+          <h3 class="card-title">3. Icône Adaptative (Maskable)</h3>
+          <div class="card-specs">
+            <span>• <strong>Dimensions :</strong> 512 × 512 pixels</span>
+            <span>• <strong>Particularité :</strong> Fond plein avec zone de sécurité 80% (pour lanceurs ronds ou squircle)</span>
+            <span>• <strong>Usage :</strong> Android TWA / PWABuilder package</span>
+          </div>
+        </div>
+        <a href="/pwa-maskable-512x512.png" download="Icone-Adaptative-Maskable-512x512.png" class="btn-download btn-secondary">
+          ⬇ Télécharger l'icône adaptative
+        </a>
+      </div>
+
+      <!-- 4. Apple Touch Icon 180x180 -->
+      <div class="card">
+        <div>
+          <div class="preview-box">
+            <img src="/apple-touch-icon.png" alt="Apple Touch Icon" style="width: 120px; height: 120px;">
+          </div>
+          <h3 class="card-title">4. Icône Apple Touch</h3>
+          <div class="card-specs">
+            <span>• <strong>Dimensions :</strong> 180 × 180 pixels</span>
+            <span>• <strong>Format :</strong> PNG carré sans transparence</span>
+            <span>• <strong>Usage :</strong> iOS Safari / App Store PWA</span>
+          </div>
+        </div>
+        <a href="/apple-touch-icon.png" download="Apple-Touch-Icon-180x180.png" class="btn-download btn-secondary">
+          ⬇ Télécharger Apple Touch Icon
+        </a>
+      </div>
+
+      <!-- 5. Captures d'écran -->
+      <div class="card full-width">
+        <h3 class="card-title" style="margin-bottom: 14px;">5. Captures d'écran pour la Fiche Play Store</h3>
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 20px;">
+          Google Play exige au minimum 2 captures d'écran de l'application (smartphone et tablette).
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+          <div style="border: 1px solid var(--border); border-radius: 12px; padding: 14px;">
+            <p style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">Capture Mobile (720×1280)</p>
+            <img src="/screenshot-mobile.png" alt="Capture mobile" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; margin-bottom: 12px;">
+            <a href="/screenshot-mobile.png" download="Capture-Ecran-Mobile-720x1280.png" class="btn-download btn-secondary" style="font-size: 12px; padding: 8px;">
+              ⬇ Télécharger Capture Mobile
+            </a>
+          </div>
+
+          <div style="border: 1px solid var(--border); border-radius: 12px; padding: 14px;">
+            <p style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">Capture Tablette / Desktop (1280×720)</p>
+            <img src="/screenshot-desktop.png" alt="Capture tablette" style="width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; margin-bottom: 12px;">
+            <a href="/screenshot-desktop.png" download="Capture-Ecran-Tablette-1280x720.png" class="btn-download btn-secondary" style="font-size: 12px; padding: 8px;">
+              ⬇ Télécharger Capture Tablette
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions Google Play Console -->
+    <div class="instructions-card">
+      <h2>📌 Comment les importer dans la Google Play Console</h2>
+      <ol class="steps-list">
+        <li>Connectez-vous sur votre compte <strong>Google Play Console</strong>.</li>
+        <li>Sélectionnez votre application <strong>DermEsthetic Pro</strong>.</li>
+        <li>Dans le menu de gauche, rendez-vous dans <strong>Croissance &gt; Présence sur le Play Store &gt; Fiche principale du Play Store</strong>.</li>
+        <li>Faites défiler jusqu'à la section <strong>Éléments graphiques</strong> :
+          <ul style="margin: 8px 0 8px 20px; font-size: 13.5px; color: var(--text-muted);">
+            <li>Déposez <strong>Icone-Application-512x512.png</strong> dans le champ <em>Icône de l'application</em>.</li>
+            <li>Déposez <strong>Graphique-Fonctionnalite-1024x500.png</strong> dans le champ <em>Graphique de fonctionnalité</em>.</li>
+            <li>Déposez vos captures d'écran dans les sections <em>Téléphone</em> et <em>Tablette</em>.</li>
+          </ul>
+        </li>
+        <li>N'oubliez pas d'indiquer votre URL de règles de confidentialité :<br>
+          <code style="display: inline-block; background: #f5f5f4; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin-top: 6px; color: var(--primary); font-weight: 600;">https://ais-pre-xqni426rbj4g2zmdisysfc-665307952988.europe-west2.run.app/privacy</code>
+        </li>
+        <li>Cliquez sur <strong>Enregistrer</strong> en bas à droite de la page.</li>
+      </ol>
+    </div>
+
+    <div class="back-nav">
+      <a href="/">← Revenir à l'application DermEsthetic Pro</a>
+    </div>
+  </div>
+
+</body>
+</html>
