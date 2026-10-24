@@ -12,10 +12,7 @@ import {
   EyeOff,
   ArrowRight,
   Award,
-  FileText,
   MapPin,
-  Phone,
-  HelpCircle,
 } from 'lucide-react';
 import { PractitionerUser } from '../types';
 import {
@@ -25,6 +22,8 @@ import {
   getRegisteredUsers,
   ESTHETICIAN_ROLES,
 } from '../services/authService';
+import { LanguageSelector } from './LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   onSuccess: (user: PractitionerUser) => void;
@@ -37,6 +36,7 @@ export const AuthModal: React.FC<Props> = ({
   canDismiss = false,
   onClose,
 }) => {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<'register' | 'login'>('register');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,12 +65,12 @@ export const AuthModal: React.FC<Props> = ({
     setErrorMessage(null);
 
     if (!acceptTerms) {
-      setErrorMessage("Veuillez accepter les conditions d'utilisation et la politique de confidentialité.");
+      setErrorMessage(t.auth.errTerms);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage('Les deux mots de passe saisis ne sont pas identiques.');
+      setErrorMessage(t.auth.errPasswordMatch);
       return;
     }
 
@@ -87,12 +87,12 @@ export const AuthModal: React.FC<Props> = ({
     });
 
     if (result.success && result.user) {
-      setSuccessMessage('Compte créé avec succès ! Bienvenue sur DermEsthetic Pro.');
+      setSuccessMessage(t.auth.successRegister);
       setTimeout(() => {
         onSuccess(result.user!);
       }, 400);
     } else {
-      setErrorMessage(result.error || 'Erreur lors de la création du compte.');
+      setErrorMessage(result.error || t.auth.errGenericRegister);
     }
   };
 
@@ -102,18 +102,18 @@ export const AuthModal: React.FC<Props> = ({
 
     const result = loginUser(loginEmail, loginPassword);
     if (result.success && result.user) {
-      setSuccessMessage(`Ravi(e) de vous revoir, ${result.user.fullName} !`);
+      setSuccessMessage(`${t.auth.welcomeBack}, ${result.user.fullName} !`);
       setTimeout(() => {
         onSuccess(result.user!);
       }, 350);
     } else {
-      setErrorMessage(result.error || 'Identifiants invalides.');
+      setErrorMessage(result.error || t.auth.errInvalidCredentials);
     }
   };
 
   const handleQuickDemo = () => {
     const demo = loginAsDemo();
-    setSuccessMessage('Connexion en mode démonstration réussie.');
+    setSuccessMessage(t.auth.demoSuccess);
     setTimeout(() => {
       onSuccess(demo);
     }, 200);
@@ -136,20 +136,25 @@ export const AuthModal: React.FC<Props> = ({
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
 
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-inner">
-                <Sparkles className="w-6 h-6 text-rose-300" />
-              </div>
-              <div>
-                <h1 className="font-serif font-bold text-2xl tracking-tight text-white">
-                  DermEsthetic <span className="text-rose-300 font-sans text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-white/10 ml-1">Pro</span>
-                </h1>
-                <p className="text-xs text-rose-200/90 font-medium">Plateforme Clinique pour Praticiennes</p>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-inner">
+                  <Sparkles className="w-6 h-6 text-rose-300" />
+                </div>
+                <div>
+                  <h1 className="font-serif font-bold text-2xl tracking-tight text-white">
+                    {t.auth.brandTitle}{' '}
+                    <span className="text-rose-300 font-sans text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-white/10 ml-1">
+                      {t.auth.brandBadge}
+                    </span>
+                  </h1>
+                  <p className="text-xs text-rose-200/90 font-medium">{t.auth.brandSubtitle}</p>
+                </div>
               </div>
             </div>
 
             <p className="text-sm text-stone-200/90 leading-relaxed mb-6 font-light">
-              L'application de référence pour les esthéticiennes, dermo-analystes et instituts de beauté : diagnostic cutané précis, scanner INCI et ordonnances cabine sur-mesure.
+              {t.auth.brandDesc}
             </p>
 
             {/* Key Pillars */}
@@ -159,8 +164,8 @@ export const AuthModal: React.FC<Props> = ({
                   <Award className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <strong className="block text-white font-medium">Ordonnances au nom de votre institut</strong>
-                  <span className="text-stone-300 text-[11px]">Personnalisez vos protocoles avec votre en-tête et logo.</span>
+                  <strong className="block text-white font-medium">{t.auth.pillar1Title}</strong>
+                  <span className="text-stone-300 text-[11px]">{t.auth.pillar1Desc}</span>
                 </div>
               </div>
 
@@ -169,8 +174,8 @@ export const AuthModal: React.FC<Props> = ({
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <strong className="block text-white font-medium">Souveraineté & RGPD</strong>
-                  <span className="text-stone-300 text-[11px]">Dossiers clientes stockés localement sur votre appareil en toute confidentialité.</span>
+                  <strong className="block text-white font-medium">{t.auth.pillar2Title}</strong>
+                  <span className="text-stone-300 text-[11px]">{t.auth.pillar2Desc}</span>
                 </div>
               </div>
 
@@ -179,8 +184,8 @@ export const AuthModal: React.FC<Props> = ({
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <strong className="block text-white font-medium">Diagnostic IA Visage & Corps</strong>
-                  <span className="text-stone-300 text-[11px]">Détection de déshydratation, couperose, ciment lipidique et formulation INCI.</span>
+                  <strong className="block text-white font-medium">{t.auth.pillar3Title}</strong>
+                  <span className="text-stone-300 text-[11px]">{t.auth.pillar3Desc}</span>
                 </div>
               </div>
             </div>
@@ -188,13 +193,13 @@ export const AuthModal: React.FC<Props> = ({
 
           {/* Quick Demo Button */}
           <div className="mt-8 pt-6 border-t border-white/15">
-            <p className="text-[11px] text-stone-300 mb-2">Vous souhaitez simplement découvrir l'application ?</p>
+            <p className="text-[11px] text-stone-300 mb-2">{t.auth.demoPrompt}</p>
             <button
               type="button"
               onClick={handleQuickDemo}
               className="w-full py-2.5 px-4 bg-white/15 hover:bg-white/25 active:bg-white/30 text-white rounded-xl text-xs font-semibold backdrop-blur-sm border border-white/20 transition-all flex items-center justify-center gap-2 group cursor-pointer shadow-sm"
             >
-              <span>Accéder en Mode Démonstration 1-Clic</span>
+              <span>{t.auth.demoBtn}</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -203,8 +208,8 @@ export const AuthModal: React.FC<Props> = ({
         {/* Right Side: Authentication Forms */}
         <div className="md:w-7/12 p-6 sm:p-8 bg-white flex flex-col justify-between">
           <div>
-            {/* Top Switcher: Inscription / Connexion */}
-            <div className="flex items-center justify-between mb-6">
+            {/* Top Switcher: Inscription / Connexion & Language Selector */}
+            <div className="flex items-center justify-between gap-2 mb-6">
               <div className="p-1 bg-stone-100 rounded-2xl flex items-center w-full max-w-xs border border-stone-200/80">
                 <button
                   type="button"
@@ -212,13 +217,13 @@ export const AuthModal: React.FC<Props> = ({
                     setMode('register');
                     setErrorMessage(null);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                     mode === 'register'
                       ? 'bg-rose-950 text-white shadow-xs'
                       : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
-                  Inscription Praticienne
+                  {t.auth.tabRegister}
                 </button>
                 <button
                   type="button"
@@ -226,25 +231,30 @@ export const AuthModal: React.FC<Props> = ({
                     setMode('login');
                     setErrorMessage(null);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                     mode === 'login'
                       ? 'bg-rose-950 text-white shadow-xs'
                       : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
-                  Connexion
+                  {t.auth.tabLogin}
                 </button>
               </div>
 
-              {canDismiss && onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-xs text-stone-400 hover:text-stone-700 font-medium px-2 py-1 rounded-lg hover:bg-stone-100 transition-colors"
-                >
-                  Fermer ✕
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Multilingual Selector in Auth Modal */}
+                <LanguageSelector variant="modal" showLabel={false} />
+
+                {canDismiss && onClose && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-xs text-stone-400 hover:text-stone-700 font-medium px-2 py-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                  >
+                    {t.common.close} ✕
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Error / Success Notifications */}
@@ -268,7 +278,7 @@ export const AuthModal: React.FC<Props> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Nom complet & Prénom <span className="text-rose-600">*</span>
+                      {t.auth.fullNameLabel} <span className="text-rose-600">*</span>
                     </label>
                     <div className="relative">
                       <User className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -277,7 +287,7 @@ export const AuthModal: React.FC<Props> = ({
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Ex: Clara Valmont"
+                        placeholder={t.auth.fullNamePlaceholder}
                         className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 focus:ring-1 focus:ring-rose-800 outline-none transition-all"
                       />
                     </div>
@@ -285,7 +295,7 @@ export const AuthModal: React.FC<Props> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Nom de l'Institut / Salon <span className="text-rose-600">*</span>
+                      {t.auth.instituteLabel} <span className="text-rose-600">*</span>
                     </label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -294,7 +304,7 @@ export const AuthModal: React.FC<Props> = ({
                         required
                         value={instituteName}
                         onChange={(e) => setInstituteName(e.target.value)}
-                        placeholder="Ex: Institut Rose Poudrée"
+                        placeholder={t.auth.institutePlaceholder}
                         className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 focus:ring-1 focus:ring-rose-800 outline-none transition-all"
                       />
                     </div>
@@ -304,12 +314,12 @@ export const AuthModal: React.FC<Props> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Votre Spécialité / Métier
+                      {t.auth.roleLabel}
                     </label>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all cursor-pointer"
                     >
                       {ESTHETICIAN_ROLES.map((r) => (
                         <option key={r} value={r}>
@@ -322,7 +332,7 @@ export const AuthModal: React.FC<Props> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Ville / Région
+                      {t.auth.cityLabel}
                     </label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -330,7 +340,7 @@ export const AuthModal: React.FC<Props> = ({
                         type="text"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        placeholder="Ex: Bordeaux (33)"
+                        placeholder={t.auth.cityPlaceholder}
                         className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
                       />
                     </div>
@@ -340,13 +350,13 @@ export const AuthModal: React.FC<Props> = ({
                 {role === 'Autre rôle personnalisé...' && (
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Précisez votre qualification
+                      {t.auth.customRolePlaceholder}
                     </label>
                     <input
                       type="text"
                       value={customRole}
                       onChange={(e) => setCustomRole(e.target.value)}
-                      placeholder="Ex: Dermo-pigmentiste & Praticienne Kobido"
+                      placeholder="Ex: Naturo-Esthéticienne & Dermo-Praticienne"
                       className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none"
                     />
                   </div>
@@ -354,7 +364,7 @@ export const AuthModal: React.FC<Props> = ({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                    Email professionnel <span className="text-rose-600">*</span>
+                    {t.auth.emailLabel} <span className="text-rose-600">*</span>
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -363,7 +373,7 @@ export const AuthModal: React.FC<Props> = ({
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="contact@institut-beaute.fr"
+                      placeholder={t.auth.emailPlaceholder}
                       className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
                     />
                   </div>
@@ -372,7 +382,7 @@ export const AuthModal: React.FC<Props> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Mot de passe <span className="text-rose-600">*</span>
+                      {t.auth.passwordLabel} <span className="text-rose-600">*</span>
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -387,7 +397,7 @@ export const AuthModal: React.FC<Props> = ({
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600"
+                        className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
                       >
                         {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -396,7 +406,7 @@ export const AuthModal: React.FC<Props> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                      Confirmer le mot de passe <span className="text-rose-600">*</span>
+                      {t.auth.confirmPasswordLabel} <span className="text-rose-600">*</span>
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -405,7 +415,7 @@ export const AuthModal: React.FC<Props> = ({
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Répétez le mot de passe"
+                        placeholder={t.auth.confirmPasswordPlaceholder}
                         className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
                       />
                     </div>
@@ -422,9 +432,9 @@ export const AuthModal: React.FC<Props> = ({
                       className="mt-0.5 rounded border-stone-300 text-rose-800 focus:ring-rose-800"
                     />
                     <span>
-                      J'atteste être professionnelle ou étudiante en esthétique / cosmétique et j'accepte les{' '}
+                      {t.auth.acceptTermsPrefix}{' '}
                       <a href="/privacy" target="_blank" className="text-rose-900 underline font-medium">
-                        règles de confidentialité & RGPD
+                        {t.auth.acceptTermsLink}
                       </a>
                       .
                     </span>
@@ -436,7 +446,7 @@ export const AuthModal: React.FC<Props> = ({
                   className="w-full py-3 px-4 bg-rose-950 hover:bg-rose-900 active:bg-rose-950 text-white rounded-xl text-xs font-bold tracking-wide uppercase shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
                 >
                   <Sparkles className="w-4 h-4 text-rose-300" />
-                  <span>Créer mon Compte & Accéder à l'Espace Pro</span>
+                  <span>{t.auth.btnRegister}</span>
                 </button>
               </form>
             )}
@@ -446,7 +456,7 @@ export const AuthModal: React.FC<Props> = ({
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                    Email professionnel
+                    {t.auth.emailLabel}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -455,7 +465,7 @@ export const AuthModal: React.FC<Props> = ({
                       required
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="clara.valmont@institut-rosepoudree.fr"
+                      placeholder={t.auth.emailPlaceholder}
                       className="w-full pl-9 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
                     />
                   </div>
@@ -464,7 +474,7 @@ export const AuthModal: React.FC<Props> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] font-semibold text-stone-700">
-                      Mot de passe
+                      {t.auth.passwordLabel}
                     </label>
                     <span className="text-[10px] text-stone-400">
                       (Mode démo : mot de passe optionnel)
@@ -476,13 +486,13 @@ export const AuthModal: React.FC<Props> = ({
                       type={showPassword ? 'text' : 'password'}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Votre mot de passe"
+                      placeholder={t.auth.passwordPlaceholder}
                       className="w-full pl-9 pr-8 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-rose-800 outline-none transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600"
+                      className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -494,14 +504,14 @@ export const AuthModal: React.FC<Props> = ({
                   className="w-full py-3 px-4 bg-rose-950 hover:bg-rose-900 active:bg-rose-950 text-white rounded-xl text-xs font-bold tracking-wide uppercase shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-rose-300" />
-                  <span>Connexion Sécurisée</span>
+                  <span>{t.auth.btnLogin}</span>
                 </button>
 
                 {/* Existing accounts on device */}
                 {registeredUsers.length > 0 && (
                   <div className="pt-4 border-t border-stone-100">
                     <p className="text-[11px] font-semibold text-stone-500 mb-2">
-                      Comptes enregistrés sur cet appareil :
+                      {t.auth.quickReconnect}
                     </p>
                     <div className="space-y-1.5 max-h-36 overflow-y-auto">
                       {registeredUsers.map((u) => (
@@ -523,7 +533,7 @@ export const AuthModal: React.FC<Props> = ({
                             </div>
                           </div>
                           <span className="text-[10px] text-rose-800 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                            Se connecter →
+                            {t.auth.tabLogin} →
                           </span>
                         </button>
                       ))}
@@ -541,7 +551,7 @@ export const AuthModal: React.FC<Props> = ({
               Chiffrement local & Secret d'institut
             </span>
             <a href="/privacy" target="_blank" className="hover:text-stone-700 underline">
-              Politique RGPD
+              {t.auth.acceptTermsLink}
             </a>
           </div>
         </div>

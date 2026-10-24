@@ -50,6 +50,15 @@ export interface ProductReviewsData {
   reviewsSample: UserReview[];
 }
 
+export interface KeyIngredientAnalysis {
+  name: string;
+  purpose: string; // Purpose/Function in formula: e.g. Humectant, Tensioactif, Antioxydant, etc.
+  safetyRating: 'sûr' | 'modéré' | 'à risque' | 'dangereux';
+  isDangerousOrControversial?: boolean;
+  hazardDetails?: string;
+  scientificContext?: string;
+}
+
 export interface ProductAnalysisResult {
   barcode?: string;
   productName: string;
@@ -58,6 +67,7 @@ export interface ProductAnalysisResult {
   imageUrl?: string;
   safetyScore: number; // 0 to 100
   riskLevel: RiskLevel;
+  keyIngredientsWithPurpose?: KeyIngredientAnalysis[];
   isControversialOrDangerous: boolean;
   summary: string;
   extractedInci?: string[];
@@ -78,10 +88,11 @@ export interface ProductAnalysisResult {
 export interface CabinStep {
   stepNumber: number;
   phase: string;
-  actionName: string;
-  equipmentOrTechnique: string;
-  activeIngredients: string[];
-  cautions: string;
+  actionName?: string;
+  action?: string;
+  equipmentOrTechnique?: string;
+  activeIngredients?: string[];
+  cautions?: string;
 }
 
 export interface RoutineStep {
@@ -106,6 +117,18 @@ export interface SkinMetrics {
   lymphaticRetention?: 'faible' | 'modérée' | 'sévère';
 }
 
+export interface IdentifiedSkinCondition {
+  id: string;
+  name: string; // e.g. "Acné & Imperfections", "Rougeurs & Couperose", "Rides & Ridules", "Taches pigmentaires", "Déshydratation", "Cellulite & Capitons"
+  detected: boolean;
+  severity: 'faible' | 'modérée' | 'sévère';
+  confidenceScore: number; // 0-100%
+  description: string;
+  affectedZone?: string;
+  suggestedProTreatment: string;
+  suggestedProducts: string[];
+}
+
 export interface DiagnosticReport {
   id: string;
   date: string;
@@ -118,6 +141,7 @@ export interface DiagnosticReport {
   photoAfterUrl?: string;
   diagnosticSummary: string;
   metrics: SkinMetrics;
+  identifiedConditions?: IdentifiedSkinCondition[];
   skinTypeAssessment: {
     mainType: string;
     phototypeFitzpatrick?: string;
@@ -193,6 +217,30 @@ export interface SkinProgressPhoto {
   notes?: string;
 }
 
+export type AppointmentStatus = 'confirme' | 'en_attente' | 'termine' | 'annule';
+export type AppointmentCareType = 'visage' | 'corps' | 'diagnostic' | 'cure_suivi' | 'peeling' | 'autre';
+
+export interface Appointment {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm (e.g. "14:30")
+  endTime: string; // HH:mm (e.g. "15:30")
+  durationMinutes: number; // in minutes (e.g. 60)
+  serviceType: AppointmentCareType;
+  serviceTitle: string; // e.g. "Soin Réparateur Barrière & Céramides"
+  cabin?: string; // e.g. "Cabine 1 - Rose Poudrée"
+  practitionerName?: string;
+  notes?: string;
+  status: AppointmentStatus;
+  price?: number;
+  reminderSent?: boolean;
+  createdAt: string;
+}
+
 export interface ClientProfile {
   id: string;
   fullName: string;
@@ -217,6 +265,7 @@ export interface ClientProfile {
   purchasedProducts: PurchasedProductRecord[];
   privateNotes: PrivateClientNote[];
   progressPhotos?: SkinProgressPhoto[];
+  appointments?: Appointment[];
 }
 
 export interface PractitionerUser {

@@ -27,8 +27,11 @@ import {
   DollarSign
 } from 'lucide-react';
 import { ProductAnalysisResult, ClientProfile } from '../types';
-import { analyzeProductApi } from '../services/apiService';
+import { analyzeProductApi, extractKeyIngredientsWithPurpose } from '../services/apiService';
 import { VERIFIED_PRODUCTS_CATALOG } from '../data/cosmeticsDatabase';
+import { useLanguage } from '../context/LanguageContext';
+
+import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
 interface Props {
   clients: ClientProfile[];
@@ -41,6 +44,7 @@ export const ProductScannerView: React.FC<Props> = ({
   onAddProductToClient,
   onAddProductToCatalog,
 }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'camera' | 'barcode' | 'inci' | 'photo' | 'catalog'>('camera');
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategoryFilter, setCatalogCategoryFilter] = useState('all');
@@ -63,54 +67,54 @@ export const ProductScannerView: React.FC<Props> = ({
   const [customPrice, setCustomPrice] = useState('25,00 €');
   const [customInci, setCustomInci] = useState('');
 
-  // Camera handling
+  // Camera & ZXing Barcode Reader handling
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<number | null>(null);
+  const zxingControlsRef = useRef<IScannerControls | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
 
-  // Start Camera
+  // Start Camera with ZXing & native BarcodeDetector fallback
   const startCamera = async () => {
     setCameraError(null);
     try {
+      if (zxingControlsRef.current) {
+        zxingControlsRef.current.stop();
+        zxingControlsRef.current = null;
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        await videoRef.current.play().catch(() => {});
       }
       setCameraActive(true);
 
-      // Check if native BarcodeDetector is available
-      if ('BarcodeDetector' in window) {
-        try {
-          const barcodeDetector = new (window as any).BarcodeDetector({
-            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'qr_code'],
-          });
-
-          scanIntervalRef.current = window.setInterval(async () => {
-            if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-              try {
-                const barcodes = await barcodeDetector.detect(videoRef.current);
-                if (barcodes.length > 0) {
-                  const detectedCode = barcodes[0].rawValue;
-                  stopCamera();
-                  handleAnalyze({ barcode: detectedCode });
-                }
-              } catch (e) {
-                // Ignore detection frame error
+      // Initialize ZXing Multi-format reader for robust universal barcode detection
+      try {
+        const reader = new BrowserMultiFormatReader();
+        readerRef.current = reader;
+        if (videoRef.current) {
+          const controls = await reader.decodeFromVideoElement(videoRef.current, (barcodeResult, err) => {
+            if (barcodeResult) {
+              const code = barcodeResult.getText();
+              if (code && code.length >= 5) {
+                stopCamera();
+                handleAnalyze({ barcode: code });
               }
             }
-          }, 400);
-        } catch (e) {
-          console.warn('BarcodeDetector initialization failed', e);
+          });
+          zxingControlsRef.current = controls;
         }
+      } catch (zxingErr) {
+        console.warn('ZXing live stream reader init fallback:', zxingErr);
       }
     } catch (err: any) {
       console.warn('Camera access failed:', err);
@@ -120,9 +124,14 @@ export const ProductScannerView: React.FC<Props> = ({
   };
 
   const stopCamera = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
+    if (zxingControlsRef.current) {
+      try {
+        zxingControlsRef.current.stop();
+      } catch (e) {}
+      zxingControlsRef.current = null;
+    }
+    if (readerRef.current) {
+      readerRef.current = null;
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -152,17 +161,44 @@ export const ProductScannerView: React.FC<Props> = ({
     if (!ctx) return;
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    // Try decoding barcode from the captured snapshot first
+    try {
+      const reader = new BrowserMultiFormatReader();
+      const codeResult = await reader.decodeFromImageUrl(dataUrl);
+      if (codeResult && codeResult.getText()) {
+        stopCamera();
+        handleAnalyze({ barcode: codeResult.getText() });
+        return;
+      }
+    } catch (e) {
+      // no barcode detected on frame, proceed with AI label analysis
+    }
+
     stopCamera();
     handleAnalyze({ labelPhotoBase64: dataUrl });
   };
 
-  // Upload image handler
+  // Upload image handler: scans barcode in image OR analyzes composition label
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
+
+      // Attempt to decode barcode from uploaded image first
+      try {
+        const codeReader = new BrowserMultiFormatReader();
+        const detected = await codeReader.decodeFromImageUrl(dataUrl);
+        if (detected && detected.getText()) {
+          handleAnalyze({ barcode: detected.getText() });
+          return;
+        }
+      } catch (err) {
+        // No barcode detected in image, fallback to Gemini label reading
+      }
+
       handleAnalyze({
         labelPhotoBase64: dataUrl,
         productName: productNameInput || file.name.replace(/\.[^/.]+$/, ''),
@@ -268,11 +304,10 @@ export const ProductScannerView: React.FC<Props> = ({
             <span>Scanner & Base de Données Cosmétiques (Visage & Corps)</span>
           </div>
           <h1 className="text-3xl font-serif text-stone-900 font-bold">
-            Analyse des Produits & Détection des Ingrédients Dangereux
+            {t.scanner.title}
           </h1>
           <p className="text-sm text-stone-600 mt-1 max-w-2xl">
-            Scannez le code-barre ou explorez le catalogue : découvrez la composition INCI, les avis utilisateurs certifiés
-            et une alerte formelle en cas de perturbateurs endocriniens ou substances toxiques.
+            {t.scanner.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -302,7 +337,7 @@ export const ProductScannerView: React.FC<Props> = ({
                 }`}
               >
                 <Camera className="w-3.5 h-3.5" />
-                Caméra
+                {t.scanner.tabCamera.replace('📷 ', '')}
               </button>
               <button
                 onClick={() => setActiveTab('barcode')}
@@ -313,7 +348,7 @@ export const ProductScannerView: React.FC<Props> = ({
                 }`}
               >
                 <Scan className="w-3.5 h-3.5" />
-                Code-barre
+                {t.scanner.tabBarcode.replace('🔢 ', '')}
               </button>
               <button
                 onClick={() => setActiveTab('catalog')}
@@ -324,7 +359,7 @@ export const ProductScannerView: React.FC<Props> = ({
                 }`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
-                Base ({VERIFIED_PRODUCTS_CATALOG.length})
+                {t.scanner.tabCatalog.replace('📚 ', '')} ({VERIFIED_PRODUCTS_CATALOG.length})
               </button>
               <button
                 onClick={() => setActiveTab('inci')}
@@ -335,7 +370,7 @@ export const ProductScannerView: React.FC<Props> = ({
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                INCI
+                {t.scanner.tabInci.replace('🧪 ', '')}
               </button>
               <button
                 onClick={() => setActiveTab('photo')}
@@ -627,18 +662,35 @@ export const ProductScannerView: React.FC<Props> = ({
             )}
           </div>
 
-          {/* Quick Client Association Box */}
+          {/* Quick Client Association Box - Adapted for 9/16 Mobile & Desktop */}
           {result && (
-            <div className="bg-white rounded-2xl border border-stone-200 shadow-xs p-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-semibold text-stone-800">
-                <Layers className="w-4 h-4 text-rose-700" />
-                <span>Enregistrer dans le dossier de suivi d'une cliente :</span>
+            <div className="bg-white rounded-2xl border border-stone-200/90 shadow-xs p-3.5 sm:p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-stone-900 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center text-rose-800 shrink-0">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block font-bold text-stone-900 text-xs truncate">
+                      Enregistrer dans le dossier cliente
+                    </span>
+                    <span className="text-[10px] text-stone-500 block truncate">
+                      Historique de soins & ordonnance
+                    </span>
+                  </div>
+                </div>
+                {selectedClientId && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold shrink-0">
+                    Prêt
+                  </span>
+                )}
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={selectedClientId}
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs"
+                  className="w-full h-11 sm:h-10 px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 truncate"
                 >
                   <option value="">Sélectionnez une cliente...</option>
                   {clients.map((c) => (
@@ -648,17 +700,20 @@ export const ProductScannerView: React.FC<Props> = ({
                   ))}
                 </select>
                 <button
+                  type="button"
                   onClick={handleSaveToClient}
                   disabled={!selectedClientId}
-                  className="px-3 py-2 bg-rose-950 hover:bg-rose-900 disabled:opacity-40 text-white rounded-xl text-xs font-medium transition-colors"
+                  className="w-full sm:w-auto h-11 sm:h-10 px-4 bg-rose-950 hover:bg-rose-900 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-2xs shrink-0 cursor-pointer"
                 >
-                  Associer
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Associer au dossier</span>
                 </button>
               </div>
+
               {savedSuccessMsg && (
-                <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-1.5">
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  {savedSuccessMsg}
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span className="text-[11px] leading-tight font-medium">{savedSuccessMsg}</span>
                 </div>
               )}
             </div>
@@ -679,21 +734,33 @@ export const ProductScannerView: React.FC<Props> = ({
             <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden divide-y divide-stone-100">
               {/* CLEAR HAZARD BANNER IF DANGEROUS */}
               {result.isControversialOrDangerous ? (
-                <div className="p-4 bg-rose-600 text-white flex items-center justify-between gap-3 shadow-inner">
-                  <div className="flex items-center gap-3">
-                    <ShieldAlert className="w-6 h-6 shrink-0 animate-bounce" />
-                    <div>
-                      <div className="font-bold text-sm uppercase tracking-wide">
-                        ALERTE : SUBSTANCE DANGEREUSE OU CONTROVERSÉE DÉTECTÉE
-                      </div>
-                      <div className="text-xs text-rose-100">
-                        Ce produit contient des ingrédients déconseillés par les comités de santé (perturbateurs endocriniens ou occlusifs).
+                <div className="p-4 bg-rose-600 text-white space-y-2.5 shadow-inner">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <ShieldAlert className="w-6 h-6 shrink-0 animate-bounce" />
+                      <div>
+                        <div className="font-bold text-sm uppercase tracking-wide">
+                          ⚠️ ALERTE : INGRÉDIENTS DANGEREUX OU CONTROVERSÉS DÉTECTÉS
+                        </div>
+                        <div className="text-xs text-rose-100">
+                          Attention esthéticienne : cette formulation renferme des composés toxiques, perturbateurs endocriniens ou occlusifs.
+                        </div>
                       </div>
                     </div>
+                    <span className="text-xs px-2.5 py-1 bg-white text-rose-900 font-bold rounded-lg shrink-0">
+                      À DÉCONSEILLER
+                    </span>
                   </div>
-                  <span className="text-xs px-2.5 py-1 bg-white text-rose-900 font-bold rounded-lg shrink-0">
-                    À BANNIR
-                  </span>
+                  {result.dangerousOrControversialIngredients.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-rose-500/60">
+                      <span className="text-[11px] font-semibold text-rose-100 mr-1 self-center">Alertes identifiées :</span>
+                      {result.dangerousOrControversialIngredients.map((d, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-rose-800 text-rose-100 font-semibold border border-rose-700/50">
+                          ⚠️ {d.name} ({d.category.replace(/_/g, ' ')})
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-3 bg-emerald-600 text-white flex items-center gap-2 text-xs font-semibold">
@@ -880,6 +947,93 @@ export const ProductScannerView: React.FC<Props> = ({
                 )}
               </div>
 
+              {/* KEY INGREDIENTS, PURPOSE & SAFETY RATING */}
+              {(() => {
+                const keyIngredients =
+                  result.keyIngredientsWithPurpose && result.keyIngredientsWithPurpose.length > 0
+                    ? result.keyIngredientsWithPurpose
+                    : extractKeyIngredientsWithPurpose(
+                        result.extractedInci || [],
+                        result.dangerousOrControversialIngredients || []
+                      );
+
+                return (
+                  <div className="p-6 space-y-4 bg-stone-50/40">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-rose-800 block">
+                          Formulation & Pharmacologie Cosmétique
+                        </span>
+                        <h3 className="text-base font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                          <Sliders className="w-4 h-4 text-rose-700" />
+                          Ingrédients Clés, Rôle dans la Formule & Note de Sécurité ({keyIngredients.length})
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-stone-500 hidden sm:inline">
+                        Évaluation dermo-cosmétique
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {keyIngredients.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                            item.safetyRating === 'dangereux'
+                              ? 'bg-rose-50/80 border-rose-300 text-rose-950'
+                              : item.safetyRating === 'à risque'
+                              ? 'bg-amber-50/80 border-amber-300 text-amber-950'
+                              : item.safetyRating === 'modéré'
+                              ? 'bg-stone-50 border-stone-200 text-stone-800'
+                              : 'bg-emerald-50/40 border-emerald-200 text-emerald-950'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-stone-900">{item.name}</span>
+                              {item.isDangerousOrControversial && (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-200 text-rose-900 text-[10px] font-bold tracking-wide">
+                                  ⚠️ Ingrédient controversé / dangereux
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-stone-700">
+                              <span className="font-semibold text-stone-900">Rôle cosmétique :</span> {item.purpose}
+                            </div>
+                            {item.hazardDetails && (
+                              <div className="text-[11px] text-rose-800 font-medium bg-rose-100/60 p-1.5 rounded-lg">
+                                <strong>Danger identifié :</strong> {item.hazardDetails}
+                              </div>
+                            )}
+                            {item.scientificContext && (
+                              <div className="text-[10px] text-stone-500 italic">
+                                Source : {item.scientificContext}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="shrink-0 flex items-center self-start sm:self-center gap-2">
+                            <span
+                              className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-2xs ${
+                                item.safetyRating === 'dangereux'
+                                  ? 'bg-rose-600 text-white'
+                                  : item.safetyRating === 'à risque'
+                                  ? 'bg-amber-500 text-white'
+                                  : item.safetyRating === 'modéré'
+                                  ? 'bg-stone-200 text-stone-800'
+                                  : 'bg-emerald-600 text-white'
+                              }`}
+                            >
+                              Note : {item.safetyRating}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* USER REVIEWS & RATINGS SECTION */}
               {result.reviews && (
                 <div className="p-6 space-y-4 bg-amber-50/20">
@@ -1001,6 +1155,39 @@ export const ProductScannerView: React.FC<Props> = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Quick Save to Client bar on Mobile 9/16 & Desktop */}
+              <div className="p-4 bg-stone-50 border-t border-stone-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="w-6 h-6 rounded-md bg-rose-100 flex items-center justify-center text-rose-800 shrink-0">
+                    <Layers className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-semibold text-stone-800 text-[11px] shrink-0">
+                    Dossier cliente :
+                  </span>
+                  <select
+                    value={selectedClientId}
+                    onChange={(e) => setSelectedClientId(e.target.value)}
+                    className="flex-1 min-w-0 h-9 px-2.5 bg-white border border-stone-300 rounded-lg text-xs truncate"
+                  >
+                    <option value="">Choisir une cliente...</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveToClient}
+                  disabled={!selectedClientId}
+                  className="w-full sm:w-auto h-9 px-4 bg-rose-950 hover:bg-rose-900 active:scale-[0.98] disabled:opacity-40 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-all shrink-0 cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Enregistrer dans son dossier</span>
+                </button>
               </div>
             </div>
           ) : (

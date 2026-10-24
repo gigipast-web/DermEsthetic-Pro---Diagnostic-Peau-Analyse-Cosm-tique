@@ -1,4 +1,12 @@
-import { ProductAnalysisResult, DiagnosticReport, TreatmentArea, DangerousIngredient, SkinMetrics } from '../types';
+import {
+  ProductAnalysisResult,
+  DiagnosticReport,
+  TreatmentArea,
+  DangerousIngredient,
+  SkinMetrics,
+  KeyIngredientAnalysis,
+  IdentifiedSkinCondition,
+} from '../types';
 import { VERIFIED_PRODUCTS_CATALOG, INCI_HAZARD_DICTIONARY } from '../data/cosmeticsDatabase';
 
 export async function checkBackendStatus(): Promise<{ geminiConfigured: boolean }> {
@@ -27,6 +35,103 @@ export async function lookupOpenBeautyFacts(barcode: string): Promise<any | null
     console.warn('Open Beauty Facts fetch failed:', err);
   }
   return null;
+}
+
+const INCI_PURPOSES: Record<string, { purpose: string; defaultRating?: 'sûr' | 'modéré' | 'à risque' | 'dangereux' }> = {
+  aqua: { purpose: 'Solvant physiologique & Base aqueuse', defaultRating: 'sûr' },
+  water: { purpose: 'Solvant physiologique & Base aqueuse', defaultRating: 'sûr' },
+  glycerin: { purpose: 'Humectant biomimétique & Maintien de l’eau dans l’épiderme', defaultRating: 'sûr' },
+  niacinamide: { purpose: 'Actif réparateur barrière, sébo-régulateur & anti-inflammatoire (Vitamine B3)', defaultRating: 'sûr' },
+  hyaluron: { purpose: 'Humectant repulpant & Hydratation des couches profondes', defaultRating: 'sûr' },
+  panthenol: { purpose: 'Apaisant, cicatrisant & Régénérant cutané (Provitamine B5)', defaultRating: 'sûr' },
+  ceramide: { purpose: 'Lipide structurel restaurant le ciment intercellulaire', defaultRating: 'sûr' },
+  squalane: { purpose: 'Émollient biomimétique protecteur non comédogène', defaultRating: 'sûr' },
+  tocopherol: { purpose: 'Antioxydant lipophile & Protection contre les radicaux libres (Vitamine E)', defaultRating: 'sûr' },
+  ascorb: { purpose: 'Antioxydant éclaircissant & Stimulateur de collagène (Vitamine C)', defaultRating: 'sûr' },
+  retinol: { purpose: 'Actif anti-âge dermo-rénovateur & Régénération cellulaire', defaultRating: 'sûr' },
+  salicylic: { purpose: 'Exfoliant kératolytique BHA désincrustant les pores', defaultRating: 'sûr' },
+  zinc: { purpose: 'Purifiant, assainissant & Régulateur de sébum', defaultRating: 'sûr' },
+  centella: { purpose: 'Cicatrisant & Stimulateur des fibroblastes', defaultRating: 'sûr' },
+  madecassoside: { purpose: 'Fraction purifiée apaisante & Réparatrice barrière', defaultRating: 'sûr' },
+  aloe: { purpose: 'Gel hydratant, rafraîchissant & Anti-inflammatoire végétal', defaultRating: 'sûr' },
+  jojoba: { purpose: 'Cire liquide émolliente régulatrice de sébum', defaultRating: 'sûr' },
+  shea: { purpose: 'Beurre nourrissant & Relipidant cutané', defaultRating: 'sûr' },
+  allantoin: { purpose: 'Adoucissant & Régénérant cellulaire', defaultRating: 'sûr' },
+  dimethicone: { purpose: 'Agent de texture filmogène / Silicone synthétique occlusif', defaultRating: 'modéré' },
+  cyclopentasiloxane: { purpose: 'Silicone volatil étouffant pour la barrière cutanée', defaultRating: 'à risque' },
+  bht: { purpose: 'Conservateur antioxydant synthétique (Perturbateur endocrinien)', defaultRating: 'dangereux' },
+  bha: { purpose: 'Conservateur antioxydant synthétique (Perturbateur endocrinien suspecté)', defaultRating: 'dangereux' },
+  phenoxyethanol: { purpose: 'Conservateur synthétique antimicrobien', defaultRating: 'modéré' },
+  paraben: { purpose: 'Conservateur antimicrobien (Perturbateur endocrinien)', defaultRating: 'dangereux' },
+  parfum: { purpose: 'Agent aromatisant & Source d’allergènes de contact', defaultRating: 'modéré' },
+  fragrance: { purpose: 'Agent aromatisant & Source d’allergènes de contact', defaultRating: 'modéré' },
+  paraffin: { purpose: 'Huile minérale occlusive dérivée de la pétrochimie', defaultRating: 'dangereux' },
+  petrolatum: { purpose: 'Gelée minérale occlusive étouffant les pores', defaultRating: 'dangereux' },
+  sulfate: { purpose: 'Tensioactif détergent moussant décapant', defaultRating: 'à risque' },
+  peg: { purpose: 'Émulsifiant éthoxylé pouvant contenir des impuretés', defaultRating: 'modéré' },
+  limonene: { purpose: 'Allergène de parfum réglementé (agrumes)', defaultRating: 'modéré' },
+  linalool: { purpose: 'Allergène de parfum réglementé (lavande/floral)', defaultRating: 'modéré' },
+  geraniol: { purpose: 'Allergène de parfum réglementé (rose/géranium)', defaultRating: 'modéré' },
+};
+
+export function extractKeyIngredientsWithPurpose(
+  ingredients: string[],
+  foundDangers: DangerousIngredient[]
+): KeyIngredientAnalysis[] {
+  const result: KeyIngredientAnalysis[] = [];
+  const handled = new Set<string>();
+
+  // 1. Put dangerous ingredients first with their purpose and alert details
+  foundDangers.forEach((d) => {
+    const lower = d.name.toLowerCase();
+    let purpose = 'Agent de formulation sous vigilance réglementaire';
+    for (const [key, p] of Object.entries(INCI_PURPOSES)) {
+      if (lower.includes(key)) {
+        purpose = p.purpose;
+        break;
+      }
+    }
+    const safetyRating: KeyIngredientAnalysis['safetyRating'] =
+      d.severity === 'haute' ? 'dangereux' : d.severity === 'moyenne' ? 'à risque' : 'modéré';
+
+    result.push({
+      name: d.name,
+      purpose,
+      safetyRating,
+      isDangerousOrControversial: true,
+      hazardDetails: d.dangerDescription,
+      scientificContext: d.scientificContext,
+    });
+    handled.add(lower);
+  });
+
+  // 2. Add other key beneficial/standard ingredients from the formula
+  ingredients.slice(0, 15).forEach((ing) => {
+    const clean = ing.trim();
+    const lower = clean.toLowerCase();
+    if (handled.has(lower) || clean.length < 2) return;
+
+    let purpose = 'Agent d’émulsion, de texture ou de conditionnement cutané';
+    let safetyRating: KeyIngredientAnalysis['safetyRating'] = 'sûr';
+
+    for (const [key, p] of Object.entries(INCI_PURPOSES)) {
+      if (lower.includes(key)) {
+        purpose = p.purpose;
+        if (p.defaultRating) safetyRating = p.defaultRating;
+        break;
+      }
+    }
+
+    result.push({
+      name: clean,
+      purpose,
+      safetyRating,
+      isDangerousOrControversial: false,
+    });
+    handled.add(lower);
+  });
+
+  return result;
 }
 
 export function analyzeInciLocally(
@@ -84,6 +189,8 @@ export function analyzeInciLocally(
     foundDangers.some((d) => d.severity === 'haute' || d.category === 'perturbateur_endocrinien' || d.category === 'cancérogène_suspecté') ||
     safetyScore < 60;
 
+  const keyIngredientsWithPurpose = extractKeyIngredientsWithPurpose(ingredients, foundDangers);
+
   return {
     barcode,
     productName: productName || 'Produit Cosmétique',
@@ -92,6 +199,7 @@ export function analyzeInciLocally(
     safetyScore,
     riskLevel,
     isControversialOrDangerous,
+    keyIngredientsWithPurpose,
     summary:
       foundDangers.length > 0
         ? `ALERTE : Ce produit renferme ${foundDangers.length} substance(s) à risque ou controversée(s) (dont des ${foundDangers.map((d) => d.category.replace(/_/g, ' ')).join(', ')}).`
@@ -151,7 +259,16 @@ export async function analyzeProductApi(params: {
     const cleanCode = params.barcode.trim();
     const verified = VERIFIED_PRODUCTS_CATALOG.find((p) => p.barcode === cleanCode);
     if (verified) {
-      return verified;
+      const keyIngredientsWithPurpose =
+        verified.keyIngredientsWithPurpose ||
+        extractKeyIngredientsWithPurpose(
+          verified.extractedInci || [],
+          verified.dangerousOrControversialIngredients || []
+        );
+      return {
+        ...verified,
+        keyIngredientsWithPurpose,
+      };
     }
   }
 
@@ -191,9 +308,17 @@ export async function analyzeProductApi(params: {
         dangerousList.some((d: any) => d.severity === 'haute' || d.category === 'perturbateur_endocrinien' || d.category === 'cancérogène_suspecté') ||
         (data.safetyScore && data.safetyScore < 60);
 
+      // Ensure keyIngredientsWithPurpose is always populated
+      let keyIngredientsWithPurpose = data.keyIngredientsWithPurpose;
+      if (!keyIngredientsWithPurpose || !Array.isArray(keyIngredientsWithPurpose) || keyIngredientsWithPurpose.length === 0) {
+        const ingredientsList = data.extractedInci || (fetchedInci ? fetchedInci.split(/[,;\n•·]/) : []);
+        keyIngredientsWithPurpose = extractKeyIngredientsWithPurpose(ingredientsList, dangerousList);
+      }
+
       return {
         ...data,
         isControversialOrDangerous: data.isControversialOrDangerous ?? isControversialOrDangerous,
+        keyIngredientsWithPurpose,
         barcode: params.barcode || data.barcode,
         analyzedAt: new Date().toISOString().split('T')[0],
         source: 'gemini_ia',
@@ -290,6 +415,225 @@ export function computeSkinMetrics(params: {
   };
 }
 
+export function generateIdentifiedConditions(params: {
+  treatmentArea: TreatmentArea;
+  specificZone: string;
+  concerns?: string[];
+  sensations?: string[];
+  skinType?: string;
+  clientAge?: number;
+  metrics: SkinMetrics;
+}): IdentifiedSkinCondition[] {
+  const isBody = params.treatmentArea === 'corps';
+  const concerns = params.concerns || [];
+  const sensations = params.sensations || [];
+  const metrics = params.metrics;
+  const conditions: IdentifiedSkinCondition[] = [];
+
+  if (!isBody) {
+    // 1. Acné & Comédons
+    const acneDetected =
+      metrics.sebumScore > 65 ||
+      metrics.poresTextureScore > 60 ||
+      concerns.some((c) => /acné|imperfection|bouton|sébum|pore/i.test(c));
+    conditions.push({
+      id: 'acne',
+      name: 'Acné & Imperfections Sébacées',
+      detected: acneDetected,
+      severity: metrics.sebumScore > 80 ? 'sévère' : metrics.sebumScore > 65 ? 'modérée' : 'faible',
+      confidenceScore: acneDetected ? 94 : 45,
+      description: acneDetected
+        ? 'Hyperactivité sébacée avec comédons ouverts/fermés et prolifération bactérienne localisée sur la zone T.'
+        : 'Pas d’acné active notable ; flux sébacé modéré et physiologique.',
+      affectedZone: 'Front, ailes du nez et menton (Zone T)',
+      suggestedProTreatment:
+        'Soin Purifiant Profond aux Ultrasons, Désincrustation par Peeling Salicylique BHA 2% & Séance LED Bleue 415nm antibactérienne.',
+      suggestedProducts: [
+        'Sérum concentré Niacinamide 10% + Zinc PCA 1%',
+        'Nettoyant moussant doux sans sulfates au Tea Tree & Coco-Glucoside',
+        'Fluide matifiant purifiant non comédogène',
+      ],
+    });
+
+    // 2. Rougeurs & Couperose / Rosacée
+    const rednessDetected =
+      metrics.rednessSensitivityScore > 50 ||
+      concerns.some((c) => /rougeur|couperose|sensib/i.test(c)) ||
+      sensations.some((s) => /brûlure|picot/i.test(s));
+    conditions.push({
+      id: 'redness',
+      name: 'Rougeurs & Réactivité Vasomotrice (Couperose)',
+      detected: rednessDetected,
+      severity: metrics.rednessSensitivityScore > 75 ? 'sévère' : metrics.rednessSensitivityScore > 50 ? 'modérée' : 'faible',
+      confidenceScore: rednessDetected ? 92 : 50,
+      description: rednessDetected
+        ? 'Hyper-réactivité capillaire superficielle avec télangiectasies et érythème diffus déclenché par les variations thermiques ou le stress.'
+        : 'Microcirculation équilibrée sans dilatation capillaire excessive ni flushs visibles.',
+      affectedZone: 'Pommettes, joues et ailes du nez',
+      suggestedProTreatment:
+        'Soin Dermo-Apaisant Haute Tolérance, Drainage Lymphatique Facial à l’eau florale de Bleuet et Luminothérapie LED Rouge/Jaune (630nm/590nm).',
+      suggestedProducts: [
+        'Sérum apaisant à la Centella Asiatica & Madecassoside',
+        'Crème bouclier anti-rougeurs aux flavonoïdes et prébiotiques',
+        'Émulsion nettoyante lactée thermale sans frottements',
+      ],
+    });
+
+    // 3. Rides & Relâchement cutané
+    const wrinklesDetected =
+      metrics.wrinklesScore > 45 ||
+      metrics.elasticityFirmnessScore < 60 ||
+      concerns.some((c) => /ride|relâchement|âge|fermeté/i.test(c));
+    conditions.push({
+      id: 'wrinkles',
+      name: 'Rides, Ridules & Perte de Fermeté',
+      detected: wrinklesDetected,
+      severity: metrics.wrinklesScore > 70 ? 'sévère' : metrics.wrinklesScore > 45 ? 'modérée' : 'faible',
+      confidenceScore: wrinklesDetected ? 95 : 60,
+      description: wrinklesDetected
+        ? 'Désorganisation de la matrice extracellulaire avec amincissement du derme, sillons dynamiques accentués et relâchement de l’ovale.'
+        : 'Bon tonus fibroblastique et réseau d’élastine préservé ; micro-ridules d’expression discrètes.',
+      affectedZone: 'Pattes d’oie, sillon nasogénien et front',
+      suggestedProTreatment:
+        'Soin Anti-Âge Cellulaire Global : Peeling Glycolique dermo-rénovateur, Modelage Liftant Kobido et Radiofréquence fractionnée stimulatrice de collagène.',
+      suggestedProducts: [
+        'Sérum rénovateur au Rétinol encapsulé 0.3% ou Bakuchiol végétal',
+        'Crème riche aux Multi-Peptides tenseurs & Acide Hyaluronique bas poids',
+        'Soin contour des yeux drainant à la Caféine & Palmitoyl Tripeptide',
+      ],
+    });
+
+    // 4. Taches Pigmentaires & Teint Inégal
+    const spotsDetected =
+      metrics.pigmentSpotsScore > 40 ||
+      concerns.some((c) => /tache|hyperpigmentation|teint|lentigo/i.test(c));
+    conditions.push({
+      id: 'dark_spots',
+      name: 'Taches Pigmentaires & Dérèglement Mélanique',
+      detected: spotsDetected,
+      severity: metrics.pigmentSpotsScore > 65 ? 'sévère' : metrics.pigmentSpotsScore > 40 ? 'modérée' : 'faible',
+      confidenceScore: spotsDetected ? 89 : 55,
+      description: spotsDetected
+        ? 'Accumulation localisée d’eumélanine liée au photo-vieillissement actinique ou aux cicatrices post-inflammatoires, causant un teint dysharmonieux.'
+        : 'Pigmentation cutanée homogène sans lentigos actiniques majeurs.',
+      affectedZone: 'Front, pommettes et zone malaire',
+      suggestedProTreatment:
+        'Protocole Éclat Anti-Taches : Peeling dépigmentant à l’acide tranexamique et acide kojique, Masque illuminateur à la Vitamine C stabilisée.',
+      suggestedProducts: [
+        'Sérum concentré Vitamine C pure 15% stabilisée + Acide Férulique',
+        'Fluide dépigmentant à l’Acide Tranexamique et Alpha-Arbutine',
+        'Écran solaire minéral haute protection SPF50+ PA++++ anti-UVB/UVA longs',
+      ],
+    });
+
+    // 5. Déshydratation Épidermique
+    const dehydrDetected =
+      metrics.hydrationScore < 50 ||
+      concerns.some((c) => /déshydrat|sèche|dessèchement/i.test(c)) ||
+      sensations.some((s) => /tiraillement|inconfort/i.test(s));
+    conditions.push({
+      id: 'dehydration',
+      name: 'Déshydratation & Altération de la Barrière Épidermique',
+      detected: dehydrDetected,
+      severity: metrics.hydrationScore < 30 ? 'sévère' : metrics.hydrationScore < 50 ? 'modérée' : 'faible',
+      confidenceScore: dehydrDetected ? 96 : 70,
+      description: dehydrDetected
+        ? 'Perte insensible en eau (PIE) accrue par carence en facteurs naturels d’hydratation (NMF) et ciment intercellulaire appauvri.'
+        : 'Teneur en eau physiologique dans la couche cornée garantissant souplesse et rebond.',
+      affectedZone: 'Ensemble du visage, particulièrement joues et tempes',
+      suggestedProTreatment:
+        'Soin Hydro-Infusion Intense : Bain de vapeur tiède ozonée, Masque alginate plastifiant occlusif aux céramides et Iontophorèse repulpante.',
+      suggestedProducts: [
+        'Sérum hydratant Acide Hyaluronique 4D multi-moléculaire',
+        'Crème barrière relipidante aux Céramides NP, AP, EOP & Cholestérol',
+        'Brume thermale minéralisante aux oligo-éléments apaisants',
+      ],
+    });
+  } else {
+    // CORPS conditions
+    // 1. Cellulite & Capitons
+    const celluliteDetected =
+      metrics.celluliteGrade !== 'aucune' ||
+      concerns.some((c) => /cellulite|peau d’orange|capiton/i.test(c));
+    conditions.push({
+      id: 'cellulite',
+      name: 'Cellulite & Capitons (Peau d’Orange)',
+      detected: celluliteDetected,
+      severity:
+        metrics.celluliteGrade === 'stade_3_fibreuse'
+          ? 'sévère'
+          : metrics.celluliteGrade === 'stade_2_adipeuse'
+          ? 'modérée'
+          : 'faible',
+      confidenceScore: celluliteDetected ? 93 : 50,
+      description: celluliteDetected
+        ? 'Engorgement et hypertrophie des adipocytes sous-cutanés avec cloisonnement fibreux rétractant l’épiderme en surface.'
+        : 'Tissu adipeux sous-cutané homogène sans capitons visibles au pincement.',
+      affectedZone: params.specificZone || 'Cuisses, fessiers et hanches',
+      suggestedProTreatment:
+        'Cure Remodelante Minceur : Madérothérapie active, Palper-rouler mécanique profond et Enveloppement osmotique aux algues marines fucus.',
+      suggestedProducts: [
+        'Gel amincissant concentré Caféine 5% et Carnitine',
+        'Huile drainante de modelage au Cèdre de l’Atlas et Baie de Genièvre',
+        'Gommage corporel tonifiant aux sels de Guérande et huile de café vert',
+      ],
+    });
+
+    // 2. Vergetures & Perte d'élasticité
+    const stretchDetected =
+      metrics.stretchMarksSeverity !== 'aucune' ||
+      concerns.some((c) => /vergeture|relâchement/i.test(c));
+    conditions.push({
+      id: 'stretch_marks',
+      name: 'Vergetures & Rupture des Fibres Dermiques',
+      detected: stretchDetected,
+      severity:
+        metrics.stretchMarksSeverity === 'prononcée'
+          ? 'sévère'
+          : metrics.stretchMarksSeverity === 'modérée'
+          ? 'modérée'
+          : 'faible',
+      confidenceScore: stretchDetected ? 91 : 48,
+      description: stretchDetected
+        ? 'Rupture distensionnelle des fibres de collagène et d’élastine sous l’effet d’une tension cutanée rapide ou d’un déséquilibre hormonal.'
+        : 'Bonne cohésion élastique du derme corporel sans stries atrophiques visibles.',
+      affectedZone: params.specificZone || 'Ventre, hanches, cuisses et seins',
+      suggestedProTreatment:
+        'Soin Réparateur Dermo-Regen : Microneedling esthétique régénérant, Masque seconde-peau au collagène marin et LED thérapie rouge cicatrisante (630nm).',
+      suggestedProducts: [
+        'Huile de rosier sauvage (Rosehip) bio enrichie en acides gras essentiels',
+        'Baume restructurant Centella Asiatica & Peptides biomimétiques',
+        'Émulsion corps nourrissante Beurre de Karité & Huile d’Argan pure',
+      ],
+    });
+
+    // 3. Rétention d'eau & Lourdeur
+    const retentionDetected =
+      metrics.lymphaticRetention !== 'faible' ||
+      concerns.some((c) => /lourde|rétention|gonfl/i.test(c));
+    conditions.push({
+      id: 'lymphatic_retention',
+      name: 'Rétention Hydrique & Stase Circulatoire',
+      detected: retentionDetected,
+      severity: metrics.lymphaticRetention === 'sévère' ? 'sévère' : 'modérée',
+      confidenceScore: retentionDetected ? 90 : 55,
+      description: retentionDetected
+        ? 'Ralentissement du retour veineux et accumulation de liquide lymphatique interstitiel générant sensation de pesanteur et gonflement.'
+        : 'Circulation veino-lymphatique fluide sans stase hydro-tissulaire.',
+      affectedZone: 'Jambes, chevilles et mollets',
+      suggestedProTreatment:
+        'Soin Pressothérapie Professionnelle 45min avec Gel Cryogène Effet Glaçon et drainage manuel des chaînes ganglionnaires de Vodder.',
+      suggestedProducts: [
+        'Gel cryothérapique jambes légères au Menthol et Camphre naturel',
+        'Complexe veinotonique aux extraits de Marron d’Inde et Vigne Rouge',
+        'Brume rafraîchissante tonifiante circulatoire',
+      ],
+    });
+  }
+
+  return conditions;
+}
+
 export async function analyzeSkinApi(params: {
   treatmentArea: TreatmentArea;
   specificZone: string;
@@ -313,6 +657,12 @@ export async function analyzeSkinApi(params: {
 
     if (res.ok) {
       const aiData = await res.json();
+      const metrics = aiData.metrics || calculatedMetrics;
+      const identifiedConditions =
+        aiData.identifiedConditions && Array.isArray(aiData.identifiedConditions) && aiData.identifiedConditions.length > 0
+          ? aiData.identifiedConditions
+          : generateIdentifiedConditions({ ...params, metrics });
+
       return {
         id: reportId,
         date: new Date().toISOString().split('T')[0],
@@ -321,7 +671,8 @@ export async function analyzeSkinApi(params: {
         treatmentArea: params.treatmentArea,
         specificZone: params.specificZone,
         photoUrl: params.photoBase64,
-        metrics: aiData.metrics || calculatedMetrics,
+        metrics,
+        identifiedConditions,
         diagnosticSummary: aiData.diagnosticSummary,
         skinTypeAssessment: aiData.skinTypeAssessment,
         priorityIssues: aiData.priorityIssues || [],
@@ -347,6 +698,7 @@ export async function analyzeSkinApi(params: {
     specificZone: params.specificZone,
     photoUrl: params.photoBase64,
     metrics: calculatedMetrics,
+    identifiedConditions: generateIdentifiedConditions({ ...params, metrics: calculatedMetrics }),
     diagnosticSummary: isBody
       ? `Bilan corporel approfondi sur la zone ${params.specificZone}. Altération de la microcirculation veinotonique avec capitons localisés et perte d’élasticité épidermique. Protocole ciblé sur la relance lymphatique, la madérothérapie manuelle et la stimulation fibroblastique.`
       : `Bilan facial dermo-esthétique sur la zone ${params.specificZone}. Film hydrolipidique affaibli avec tiraillements marqués et réactivité vasomotrice de surface. Nécessite une cure relipidante aux céramides et une désensibilisation par luminothérapie LED.`,

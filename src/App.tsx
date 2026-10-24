@@ -4,12 +4,14 @@ import { ProductScannerView } from './components/ProductScannerView';
 import { SkinDiagnosticView } from './components/SkinDiagnosticView';
 import { ActivesAndToxicGuideView } from './components/ActivesAndToxicGuideView';
 import { ClientsView } from './components/ClientsView';
-import { ClientProfile, DiagnosticReport, ProductAnalysisResult, PractitionerUser } from './types';
-import { SAMPLE_CLIENTS, VERIFIED_PRODUCTS_CATALOG } from './data/cosmeticsDatabase';
-import { Sparkles, ShieldCheck, HeartHandshake, Award } from 'lucide-react';
+import { ClientProfile, DiagnosticReport, ProductAnalysisResult, PractitionerUser, PurchasedProductRecord, Appointment } from './types';
+import { SAMPLE_CLIENTS, VERIFIED_PRODUCTS_CATALOG, SAMPLE_APPOINTMENTS } from './data/cosmeticsDatabase';
+import { Award } from 'lucide-react';
 import { getCurrentUser, logoutUser } from './services/authService';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { LanguageSelector } from './components/LanguageSelector';
 
 const INITIAL_DIAGNOSTICS: DiagnosticReport[] = [
   {
@@ -58,94 +60,191 @@ const INITIAL_DIAGNOSTICS: DiagnosticReport[] = [
         {
           stepNumber: 1,
           phase: 'Nettoyage Dermo-Biologique',
-          actionName: 'Double nettoyage au baume fondant végétal puis émulsion lactée douce',
-          equipmentOrTechnique: 'Manœuvres douces enveloppantes et rinçage aux serviettes tièdes oshibori',
-          activeIngredients: ['Prébiotiques', 'Huile d’amande douce bio'],
-          cautions: 'Éviter l’eau calcaire; brumiser eau florale de bleuet.',
+          action: 'Démaquillage avec lait relipidant doux aux esters de jojoba et brumisation eau florale camomille matricaire.',
         },
         {
           stepNumber: 2,
-          phase: 'Exfoliation Douce',
-          actionName: 'Peeling enzymatique à la papaïne et bromélaïne (sans grains abrasifs)',
-          equipmentOrTechnique: 'Pose au pinceau 7 minutes sous vapeur tiède ozone légère',
-          activeIngredients: ['Papaïne', 'Bromélaïne', 'Acide lactique 2%'],
-          cautions: 'Neutraliser immédiatement en cas d’échauffement vif.',
+          phase: 'Exfoliation Enzymatique sans grains',
+          action: 'Application gelée enzymatique grenade / papaye 5 minutes, rinçage tiède à l’éponge végétale douce.',
         },
         {
           stepNumber: 3,
-          phase: 'Modelage Dermo-Actif',
-          actionName: 'Modelage apaisant et drainage lymphatique facial aux champignons de quartz rose',
-          equipmentOrTechnique: 'Pressions douces et effleurages rythmés vers les ganglions rétro-auriculaires',
-          activeIngredients: ['Squalane végétal pur', 'Extrait de Camomille matricaire'],
-          cautions: 'Respecter le sens du drainage lymphatique.',
+          phase: 'Infusion Céramides & Acide Hyaluronique',
+          action: 'Massage drainant dermo-liftant avec sérum 3 céramides purs (NP, AP, EOP) + phytosphingosine.',
         },
         {
           stepNumber: 4,
-          phase: 'Masque Haute Imbibition',
-          actionName: 'Masque seconde peau biocellulose aux céramides et acide hyaluronique',
-          equipmentOrTechnique: 'Pose occlusive 15 minutes avec luminothérapie LED jaune & rouge (630nm)',
-          activeIngredients: ['Acide Hyaluronique bas poids', 'Céramides NP', 'Bêta-glucane'],
-          cautions: 'Protection oculaire sous la lampe LED.',
+          phase: 'Masque Seconde Peau Biocellulose',
+          action: 'Pose masque imprégné bêta-glucane et centella asiatica sous lampe LED rouge (630nm) 15 minutes.',
         },
         {
           stepNumber: 5,
-          phase: 'Finition & Protection',
-          actionName: 'Infusion du sérum fortifiant et crème bouclier barrière SPF 50',
-          equipmentOrTechnique: 'Effleurages légers visage, cou et décolleté',
-          activeIngredients: ['Niacinamide 3%', 'Oxyde de Zinc non nano'],
-          cautions: 'Ne pas laver le visage avant le soir pour préserver l’infusion.',
+          phase: 'Protection finale & Scellement',
+          action: 'Émulsion barrière cica-apaisante SPF30 sans parfum et baume lèvres nourrissant bio.',
         },
       ],
     },
     homePrescription: {
       morning: [
         {
-          step: '1. Nettoyage',
-          category: 'Gelée nettoyante sans sulfates',
-          keyActives: 'Coco-Glucoside, Glycérine végétale',
-          usageTip: 'Rincer à l’eau tiède sans frotter la peau.',
+          step: 'Nettoyage Dermo-Physiologique',
+          category: 'Nettoyant',
+          keyActives: 'Lait relipidant jojoba',
+          usageTip: 'Rincer à l’eau tiède, tamponner délicatement sans frotter',
         },
         {
-          step: '2. Sérum Hydratant',
-          category: 'Sérum d’hydratation profonde',
-          keyActives: 'Acide Hyaluronique multi-poids & Niacinamide 3%',
-          usageTip: '3 à 4 gouttes sur peau légèrement humide.',
+          step: 'Sérum Barrière & Hydratation',
+          category: 'Sérum',
+          keyActives: 'Niacinamide 4% + Acide Hyaluronique',
+          usageTip: '3 gouttes sur peau légèrement humide',
         },
         {
-          step: '3. Protection UV',
-          category: 'Crème fluide relipidante SPF 50',
-          keyActives: 'Céramides NP, Filtres UV propres',
-          usageTip: 'Visage, cou et décolleté chaque matin.',
+          step: 'Protection UV Minérale',
+          category: 'Crème de jour',
+          keyActives: 'Céramides + SPF 50 sans parfum',
+          usageTip: 'Appliquer quotidiennement avant le maquillage',
         },
       ],
       evening: [
         {
-          step: '1. Démaquillage',
-          category: 'Huile démaquillante végétale pure',
-          keyActives: 'Huile de Jojoba vierge, Vitamine E',
-          usageTip: 'Masser délicatement sur peau sèche puis émulsionner.',
+          step: 'Double Nettoyage Relipidant',
+          category: 'Nettoyant soir',
+          keyActives: 'Huile pure puis gelée sans sulfate',
+          usageTip: 'Émulsionner à l’eau tiède',
         },
         {
-          step: '2. Nutrition Nuit',
-          category: 'Crème riche barrière dermo-protectrice',
-          keyActives: 'Bakuchiol 1%, Squalane végétal, Karité brut',
-          usageTip: 'Pressions douces des paumes de mains sans étirer les tissus.',
+          step: 'Soin Réparateur Cutané Nuit',
+          category: 'Soin de nuit',
+          keyActives: 'Panthénol B5 + Oméga 3/6 végétal',
+          usageTip: 'En couche fine régénérante sur tout le visage',
         },
       ],
-      weeklyCare: 'Masque crème relipidant en couche épaisse 1 à 2 fois par semaine après un gommage enzymatique doux.',
+      weeklyCare: 'Masque crème apaisant biocellulose 1 fois par semaine. Proscrire tout gommage mécanique abrasif.',
       lifestyleAdvice: [
-        'Consommer 1.5L d’eau faiblement minéralisée tout au long de la journée.',
-        'Éviter l’eau de douche trop chaude sur le visage (>37°C).',
-        'Consommer des huiles riches en oméga-3 (noix, colza, lin) pour nourrir la peau de l’intérieur.',
+        'Humidifier l’atmosphère de la chambre en période hivernale',
+        'Privilégier une eau faiblement minéralisée (1.5L / jour)',
+        'Remplacer les cotons par des lingettes en microfibres ultra-douces',
       ],
     },
-    recommendedActiveIngredients: ['Acide Hyaluronique', 'Niacinamide', 'Céramides NP', 'Bakuchiol', 'Allantoïne'],
-    activesToAvoid: ['Sodium Lauryl Sulfate (SLS)', 'Alcool dénaturé', 'Parfums synthétiques lourds', 'Gommages mécaniques à gros grains'],
-    practitionerNotes: 'Excellente réponse au modelage quartz rose. Proscrire impérativement la boîte bleue Nivea qu’elle utilisait jusqu’ici (trop occlusive).',
+    recommendedActiveIngredients: [
+      'Céramides (NP, AP, EOP)',
+      'Acide Hyaluronique Multi-Moléculaire',
+      'Niacinamide (Vitamine B3 à 4-5%)',
+      'Centella Asiatica (Madécassoside)',
+      'Squalane Végétal Pur',
+      'Panthénol (Pro-vitamine B5)',
+    ],
+    activesToAvoid: [
+      'Alcool dénaturé (Alcohol Denat)',
+      'Sulfates agressifs (SLS / SLES)',
+      'Acide Salicylique > 1% en phase aiguë',
+      'Parfum / Fragrance synthétique',
+      'Gommages mécaniques à grains durs',
+    ],
+    practitionerNotes:
+      'Cliente très réceptive aux explications dermo-analytiques. Recommandation d’un arrêt strict des gels nettoyants moussants conventionnels achetés en grande surface.',
+  },
+  {
+    id: 'diag-demo-02',
+    date: '2026-10-18',
+    clientId: 'cli-01',
+    clientName: 'Élodie Laurent',
+    clientAge: 34,
+    treatmentArea: 'visage',
+    specificZone: 'Joues & Pommettes',
+    diagnosticSummary:
+      'Bilan d’évaluation post-cure (Séance de suivi n°2). Restauration remarquable du film hydrolipidique suite à la cure aux céramides et à la luminothérapie LED. Disparition complète des tiraillements cutanés et diminution drastique des rougeurs réactives.',
+    metrics: {
+      hydrationScore: 68,
+      sebumScore: 50,
+      wrinklesScore: 22,
+      pigmentSpotsScore: 30,
+      rednessSensitivityScore: 28,
+      elasticityFirmnessScore: 90,
+      poresTextureScore: 40,
+    },
+    skinTypeAssessment: {
+      mainType: 'Mixte équilibrée et apaisée',
+      phototypeFitzpatrick: 'Phototype II (Peau claire)',
+      hydrationLevel: 'équilibrée',
+      lipidLevel: 'normale',
+    },
+    priorityIssues: [
+      {
+        issue: 'Consolidation de la fonction barrière',
+        severity: 'faible',
+        affectedArea: 'Joues et pommettes',
+        scientificExplanation: 'Le taux de céramides intercellulaires est stabilisé, la perte en eau est freinée.',
+      },
+    ],
+    cabinProtocol: {
+      title: 'Protocole Maintien Éclat & Protection Anti-Oxydante',
+      targetGoal: 'Entretenir l’hydratation biomimétique et stimuler la longévité cellulaire',
+      duration: '45 minutes',
+      steps: [
+        {
+          stepNumber: 1,
+          phase: 'Nettoyage doux dermo-protecteur',
+          action: 'Émulsion lactée aux prébiotiques et rinçage à l’eau florale de rose.',
+        },
+        {
+          stepNumber: 2,
+          phase: 'Massage décongestionnant Kobido',
+          action: 'Manœuvres liftantes profondes avec squalane végétal et champignons de quartz.',
+        },
+        {
+          stepNumber: 3,
+          phase: 'Infusion antioxydante',
+          action: 'Sérum vitamine C stabilisée et acide hyaluronique pur sous LED jaune (590nm).',
+        },
+      ],
+    },
+    homePrescription: {
+      morning: [
+        {
+          step: 'Nettoyage doux',
+          category: 'Nettoyant',
+          keyActives: 'Eau thermale & lait prébiotique',
+          usageTip: 'Tamponner sans frotter',
+        },
+        {
+          step: 'Soin éclat protecteur',
+          category: 'Crème jour',
+          keyActives: 'Vitamine C 10% + SPF 50',
+          usageTip: 'Chaque matin',
+        },
+      ],
+      evening: [
+        {
+          step: 'Soin nuit réparateur',
+          category: 'Crème nuit',
+          keyActives: 'Céramides NP & Acide hyaluronique',
+          usageTip: 'Sur l’ensemble du visage et du cou',
+        },
+      ],
+      weeklyCare: 'Masque crème hydratant en couche épaisse 1 fois par semaine.',
+      lifestyleAdvice: [
+        'Continuer l’hydratation interne (1.5L eau/jour)',
+        'Conserver la protection solaire minérale quotidienne',
+      ],
+    },
+    recommendedActiveIngredients: [
+      'Céramides biomimétiques',
+      'Acide Hyaluronique 4D',
+      'Niacinamide 5%',
+      'Squalane végétal',
+    ],
+    activesToAvoid: [
+      'Alcool dénaturé',
+      'Nettoyants sulfatés moussants',
+    ],
+    practitionerNotes:
+      'Progression spectaculaire des scores biométriques : hydratation passée de 32% à 68%, rougeurs réduites de 78% à 28%. La cliente se dit ravie du confort retrouvé.',
   },
 ];
 
-export default function App() {
+function AppContent() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<MainTab>('scanner');
 
   // Practitioner user state & auth modals
@@ -189,6 +288,15 @@ export default function App() {
     }
   });
 
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const saved = localStorage.getItem('dermesthetic_appointments');
+      return saved ? JSON.parse(saved) : SAMPLE_APPOINTMENTS;
+    } catch {
+      return SAMPLE_APPOINTMENTS;
+    }
+  });
+
   useEffect(() => {
     try {
       localStorage.setItem('dermesthetic_clients', JSON.stringify(clients));
@@ -213,6 +321,14 @@ export default function App() {
     }
   }, [clientProducts]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('dermesthetic_appointments', JSON.stringify(appointments));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [appointments]);
+
   const handleAddClient = (newClient: ClientProfile) => {
     setClients((prev) => [newClient, ...prev]);
   };
@@ -223,6 +339,43 @@ export default function App() {
 
   const handleUpdateClient = (updatedClient: ClientProfile) => {
     setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+  };
+
+  const handleAddAppointment = (newApt: Appointment) => {
+    setAppointments((prev) => [newApt, ...prev]);
+    // Synchronize client nextAppointment
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id === newApt.clientId || c.fullName.toLowerCase() === newApt.clientName.toLowerCase()) {
+          return {
+            ...c,
+            nextAppointment: `${newApt.date} à ${newApt.startTime}`,
+          };
+        }
+        return c;
+      })
+    );
+  };
+
+  const handleUpdateAppointment = (updatedApt: Appointment) => {
+    setAppointments((prev) => prev.map((a) => (a.id === updatedApt.id ? updatedApt : a)));
+    if (updatedApt.status === 'confirme' || updatedApt.status === 'en_attente') {
+      setClients((prev) =>
+        prev.map((c) => {
+          if (c.id === updatedApt.clientId || c.fullName.toLowerCase() === updatedApt.clientName.toLowerCase()) {
+            return {
+              ...c,
+              nextAppointment: `${updatedApt.date} à ${updatedApt.startTime}`,
+            };
+          }
+          return c;
+        })
+      );
+    }
+  };
+
+  const handleDeleteAppointment = (id: string) => {
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleSaveDiagnosticReport = (report: DiagnosticReport, clientId?: string) => {
@@ -248,7 +401,6 @@ export default function App() {
             ...c,
             lastVisit: report.date,
             diagnosticsCount: (c.diagnosticsCount || 0) + 1,
-            skinType: report.skinTypeAssessment.mainType || c.skinType,
             treatmentSessions: [autoSession, ...(c.treatmentSessions || [])],
           };
         }
@@ -258,31 +410,29 @@ export default function App() {
   };
 
   const handleAddProductToClient = (clientId: string, product: ProductAnalysisResult) => {
-    setClientProducts((prev) => ({
-      ...prev,
-      [clientId]: [product, ...(prev[clientId] || [])],
-    }));
+    setClientProducts((prev) => {
+      const existing = prev[clientId] || [];
+      return {
+        ...prev,
+        [clientId]: [product, ...existing.filter((p) => p.productName !== product.productName)],
+      };
+    });
 
-    // Also add to client's purchased products history
     setClients((prev) =>
       prev.map((c) => {
         if (c.id === clientId) {
-          const record = {
-            id: 'purch-' + Date.now(),
+          const newRecord: PurchasedProductRecord = {
+            id: 'pur-' + Date.now(),
             date: new Date().toISOString().split('T')[0],
             productName: product.productName,
             brand: product.brand,
             category: product.category,
-            barcode: product.barcode,
             safetyScore: product.safetyScore,
-            repurchaseStatus: (product.isControversialOrDangerous ? 'déconseillé' : 'actif') as any,
-            clientFeedback: product.isControversialOrDangerous
-              ? 'Alerte : produit déconseillé par la praticienne en raison d’ingrédients controversés.'
-              : 'Produit scanné et validé par l’institut.',
+            repurchaseStatus: product.safetyScore >= 70 ? 'actif' : 'déconseillé',
           };
           return {
             ...c,
-            purchasedProducts: [record, ...(c.purchasedProducts || [])],
+            purchasedProducts: [newRecord, ...(c.purchasedProducts || [])],
           };
         }
         return c;
@@ -290,7 +440,7 @@ export default function App() {
     );
   };
 
-  const handleOpenDiagnosticWithClient = (client: ClientProfile) => {
+  const handleOpenDiagnosticWithClient = () => {
     setActiveTab('diagnostic');
   };
 
@@ -360,9 +510,13 @@ export default function App() {
           <ClientsView
             clients={clients}
             diagnostics={diagnostics}
+            appointments={appointments}
             onAddClient={handleAddClient}
             onUpdateClient={handleUpdateClient}
             onDeleteClient={handleDeleteClient}
+            onAddAppointment={handleAddAppointment}
+            onUpdateAppointment={handleUpdateAppointment}
+            onDeleteAppointment={handleDeleteAppointment}
             onOpenDiagnosticWithClient={handleOpenDiagnosticWithClient}
             instituteName={currentUser ? currentUser.instituteName : undefined}
             estheticianName={currentUser ? `${currentUser.fullName} (${currentUser.role})` : undefined}
@@ -370,25 +524,25 @@ export default function App() {
         )}
       </main>
 
-      {/* Professional Footer */}
+      {/* Professional Multilingual Footer */}
       <footer className="no-print bg-white border-t border-stone-200/80 py-8 text-xs text-stone-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-stone-700">
-            <Award className="w-5 h-5 text-rose-800" />
+            <Award className="w-5 h-5 text-rose-800 shrink-0" />
             <div>
               <span className="font-semibold text-stone-900 block">
-                DermEsthetic Pro · Outil Dédié aux Praticiennes en Esthétique & Cosmétique
+                {t.footer.tagline}
               </span>
               <span className="text-[11px] text-stone-500">
-                Conforme aux directives européennes cosmétiques CE 1223/2009 & CosIng.
+                {t.footer.compliance}
               </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-stone-500 text-[11px]">
-            <span>Base Open Beauty Facts connectée</span>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-stone-500 text-[11px]">
+            <span>{t.footer.openBeautyFacts}</span>
             <span>·</span>
-            <span>Diagnostic Multimodal Visage & Corps</span>
+            <span>{t.footer.diagnosticModal}</span>
             <span>·</span>
             <a
               href="/privacy"
@@ -396,7 +550,7 @@ export default function App() {
               rel="noopener noreferrer"
               className="text-rose-800 hover:text-rose-950 underline font-medium"
             >
-              Règles de confidentialité
+              {t.footer.privacy}
             </a>
             <span>·</span>
             <a
@@ -405,8 +559,11 @@ export default function App() {
               rel="noopener noreferrer"
               className="text-amber-800 hover:text-amber-950 underline font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200"
             >
-              📥 Icônes Google Play Store
+              {t.footer.playStoreIcons}
             </a>
+            <span>·</span>
+            {/* Quick Language Selector in Footer */}
+            <LanguageSelector variant="modal" showLabel={true} />
           </div>
         </div>
       </footer>
@@ -434,5 +591,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }

@@ -139,6 +139,19 @@ ${photoBase64 ? 'Une photo macroscopique haute résolution de la zone examinée 
 Réponds STRICTEMENT sous forme de JSON valide correspondant à la structure requise :
 - diagnosticSummary: synthèse claire et valorisante de l'état cutané (3-4 phrases).
 - metrics: { hydrationScore: number (0-100), sebumScore: number (0-100), wrinklesScore: number (0-100), pigmentSpotsScore: number (0-100), rednessSensitivityScore: number (0-100), elasticityFirmnessScore: number (0-100), poresTextureScore: number (0-100), celluliteGrade: "aucune" | "stade_1_aqueuse" | "stade_2_adipeuse" | "stade_3_fibreuse" (si corps), stretchMarksSeverity: "aucune" | "légère" | "modérée" | "prononcée" (si corps), lymphaticRetention: "faible" | "modérée" | "sévère" (si corps) }
+- identifiedConditions: tableau d'évaluation précise des conditions cutanées courantes détectées sur l'image et l'observation :
+  Pour chaque condition (notamment Acné / Comédons, Rougeurs / Couperose, Rides / Perte d'élasticité, Taches pigmentaires / Teint hétérogène, Déshydratation, et si corps: Cellulite, Vergetures) :
+  {
+    "id": string (ex: "acne", "redness", "wrinkles", "dark_spots", "dehydration", "cellulite"),
+    "name": string (ex: "Acné & Imperfections", "Rougeurs & Couperose / Rosacée", "Rides & Ridules", "Taches Pigmentaires", "Déshydratation Épidermique"),
+    "detected": boolean,
+    "severity": "faible" | "modérée" | "sévère",
+    "confidenceScore": number (pourcentage de 0 à 100),
+    "description": string (explication visuelle et clinique précise des manifestations observées),
+    "affectedZone": string (ex: "Front et ailes du nez", "Joues et pommettes"),
+    "suggestedProTreatment": string (soin professionnel en cabine recommandé spécifiquement pour cette condition : ex. "Luminothérapie LED Bleue 415nm & Peeling Salicylique doux", "Drainage lymphatique & Cryothérapie"),
+    "suggestedProducts": string[] (3 à 4 actifs et produits ciblés recommandés pour traiter cette condition : ex. ["Sérum Niacinamide 5% & Zinc", "Nettoyant doux sans savon", "Fluide non comédogène"])
+  }
 - skinTypeAssessment: { mainType: string, phototypeFitzpatrick: string, hydrationLevel: "déshydratée" | "équilibrée" | "sèche", lipidLevel: "alipidique" | "normale" | "hyperséborrhéique" }
 - priorityIssues: array d'objets avec { issue: string, severity: "faible" | "modérée" | "forte", affectedArea: string, scientificExplanation: string }
 - cabinProtocol: protocole complet de cabine en institut comprenant :
@@ -243,6 +256,16 @@ Réponds STRICTEMENT au format JSON avec cette structure :
   "isControversialOrDangerous": boolean (true si perturbateur endocrinien, cancérigène suspecté, huile minérale occlusive ou score < 60),
   "summary": string (résumé d'expertise en 2-3 phrases pour l'esthéticienne),
   "extractedInci": string[] (liste normalisée des ingrédients identifiés),
+  "keyIngredientsWithPurpose": [
+    {
+      "name": string (nom INCI ou commun),
+      "purpose": string (fonction exacte : ex: "Humectant & Hydratant", "Tensioactif nettoyant", "Émulsifiant", "Conservateur", "Antioxydant", "Agent de texture / Émollient", "Filtre UV"),
+      "safetyRating": "sûr" | "modéré" | "à risque" | "dangereux",
+      "isDangerousOrControversial": boolean,
+      "hazardDetails": string (si à risque ou dangereux, raison précise),
+      "scientificContext": string (contexte toxicologique ou réglementaire)
+    }
+  ],
   "dangerousOrControversialIngredients": [
     {
       "name": string (nom INCI exact),

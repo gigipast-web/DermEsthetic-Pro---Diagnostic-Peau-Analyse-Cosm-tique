@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { ACTIVES_ENCYCLOPEDIA, TOXIC_SUBSTITUTIONS_GUIDE } from '../data/activesGuide';
 import { INCI_HAZARD_DICTIONARY } from '../data/cosmeticsDatabase';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ActivesAndToxicGuideView: React.FC = () => {
+  const { t } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState<'actives' | 'toxics' | 'substitutions'>('actives');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
@@ -58,11 +60,10 @@ export const ActivesAndToxicGuideView: React.FC = () => {
           <span>Guide de Formulation & Toxicologie Esthétique</span>
         </div>
         <h1 className="text-3xl font-serif text-stone-900 font-bold">
-          Encyclopédie des Meilleurs Actifs & Dictionnaire des Substances à Risque
+          {t.actives.title}
         </h1>
         <p className="text-sm text-stone-600 mt-1 max-w-3xl">
-          Référentiel professionnel pour conseiller vos clientes : découvrez les molécules biocompatibles les plus
-          performantes et identifiez les perturbateurs endocriniens, silicones occlusifs et conservateurs controversés.
+          {t.actives.subtitle}
         </p>
       </div>
 
@@ -119,7 +120,7 @@ export const ActivesAndToxicGuideView: React.FC = () => {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
-              placeholder="Rechercher une molécule, un risque..."
+              placeholder={t.actives.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-white border border-stone-300 rounded-xl text-xs focus:ring-2 focus:ring-rose-500/20"

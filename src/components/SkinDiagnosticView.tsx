@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
   Camera,
@@ -9,6 +9,7 @@ import {
   Layers,
   Clock,
   Printer,
+  FileDown,
   CheckCircle2,
   AlertOctagon,
   HelpCircle,
@@ -24,11 +25,94 @@ import {
   Gauge,
   Image as ImageIcon,
   ArrowRight,
-  BookmarkCheck
+  BookmarkCheck,
+  CheckCircle,
 } from 'lucide-react';
-import { TreatmentArea, DiagnosticReport, ClientProfile, SkinMetrics } from '../types';
+import { TreatmentArea, DiagnosticReport, ClientProfile, SkinMetrics, IdentifiedSkinCondition } from '../types';
 import { analyzeSkinApi } from '../services/apiService';
 import { PrintablePrescriptionModal } from './PrintablePrescriptionModal';
+import { useLanguage } from '../context/LanguageContext';
+
+export interface SamplePreset {
+  id: string;
+  label: string;
+  area: TreatmentArea;
+  zone: string;
+  concerns: string[];
+  sensations: string[];
+  skinType: string;
+  notes: string;
+  photoUrl: string;
+}
+
+export const SAMPLE_PRESETS: SamplePreset[] = [
+  {
+    id: 'acne_face',
+    label: 'Visage : Acné & Pores',
+    area: 'visage',
+    zone: 'Zone T (Front, Nez, Menton)',
+    concerns: ['Pores dilatés & Excès de sébum', 'Acné adulte & Microkystes'],
+    sensations: ['Brillance sur la zone médiane en journée'],
+    skinType: 'Grasse à tendance acnéique',
+    notes: 'Comédons fermés sur les ailes du nez et le front. Hypersécrétion sébacée avec micro-lésions inflammatoires.',
+    photoUrl: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'redness_face',
+    label: 'Visage : Rougeurs & Couperose',
+    area: 'visage',
+    zone: 'Joues & Pommettes',
+    concerns: ['Rougeurs diffuses / Couperose', 'Sensibilité aux changements thermiques'],
+    sensations: ['Sensation de brûlure / picotements', 'Tiraillements après la douche'],
+    skinType: 'Sensible réactive à tendance couperosique',
+    notes: 'Télangiectasies malaires bilatérales avec érythème diffus. Hyperréactivité aux variations de température.',
+    photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'wrinkles_face',
+    label: 'Visage : Rides & Fermeté',
+    area: 'visage',
+    zone: 'Ovale du Visage & Bas Joues',
+    concerns: ['Rides & Ridules installées', 'Perte de fermeté & Relâchement'],
+    sensations: ['Tiraillements après la douche'],
+    skinType: 'Mature atone en perte de densité',
+    notes: 'Sillons nasogéniens marqués, rides péribuccales et affaissement modéré de l’ovale facial.',
+    photoUrl: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'spots_face',
+    label: 'Visage : Taches Pigmentaires',
+    area: 'visage',
+    zone: 'Visage Complet (Global)',
+    concerns: ['Taches pigmentaires & Teint terne'],
+    sensations: ['Tiraillements après la douche'],
+    skinType: 'Hyperpigmentée post-solaire',
+    notes: 'Lentigos actiniques sur les pommettes et le front. Teint dysharmonieux lié au photo-vieillissement.',
+    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'cellulite_body',
+    label: 'Corps : Cellulite & Capitons',
+    area: 'corps',
+    zone: 'Cuisses & Jambes',
+    concerns: ['Cellulite adipeuse / Peau d’orange', 'Cellulite aqueuse & Rétention d’eau'],
+    sensations: ['Pression / lourdeur des membres'],
+    notes: 'Capitons visibles en position debout et au pincement sur la face postérieure des cuisses.',
+    skinType: 'Peau corporelle infiltrée avec stase lymphatique',
+    photoUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'stretch_body',
+    label: 'Corps : Vergetures',
+    area: 'corps',
+    zone: 'Ventre & Taille',
+    concerns: ['Vergetures (rouges ou blanches)', 'Relâchement cutané & Manque de fermeté'],
+    sensations: ['Rugosité au toucher'],
+    notes: 'Stries linéaires atrophiques sur la paroi abdominale avec perte de tension tissulaire post-grossesse.',
+    skinType: 'Peau distendue en manque d’élasticité',
+    photoUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80',
+  },
+];
 
 interface Props {
   clients: ClientProfile[];
@@ -101,6 +185,7 @@ export const SkinDiagnosticView: React.FC<Props> = ({
   instituteName,
   estheticianName,
 }) => {
+  const { t } = useLanguage();
   const [treatmentArea, setTreatmentArea] = useState<TreatmentArea>('visage');
   const [selectedZone, setSelectedZone] = useState<string>('Visage Complet (Global)');
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
@@ -211,6 +296,59 @@ export const SkinDiagnosticView: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const runAnalysisWithParams = async (params: {
+    treatmentArea: TreatmentArea;
+    specificZone: string;
+    clientName: string;
+    clientAge?: number;
+    skinType?: string;
+    concerns?: string[];
+    sensations?: string[];
+    practitionerNotes?: string;
+    photoBase64?: string;
+  }) => {
+    setLoading(true);
+    setSaveSuccess(false);
+    try {
+      const generated = await analyzeSkinApi(params);
+      if (selectedClientId) {
+        generated.clientId = selectedClientId;
+      }
+      setReport(generated);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applySamplePreset = (preset: SamplePreset) => {
+    setTreatmentArea(preset.area);
+    setSelectedZone(preset.zone);
+    setSelectedConcerns(preset.concerns);
+    setSelectedSensations(preset.sensations);
+    setSkinType(preset.skinType);
+    setPractitionerNotes(preset.notes);
+    setPhotoBase64(preset.photoUrl);
+    runAnalysisWithParams({
+      treatmentArea: preset.area,
+      specificZone: preset.zone,
+      clientName: clientName || 'Élodie Laurent',
+      clientAge,
+      skinType: preset.skinType,
+      concerns: preset.concerns,
+      sensations: preset.sensations,
+      practitionerNotes: preset.notes,
+      photoBase64: preset.photoUrl,
+    });
+  };
+
+  useEffect(() => {
+    if (!report) {
+      applySamplePreset(SAMPLE_PRESETS[0]);
+    }
+  }, []);
+
   const handleGenerateDiagnostic = async () => {
     setLoading(true);
     setSaveSuccess(false);
@@ -265,21 +403,20 @@ export const SkinDiagnosticView: React.FC<Props> = ({
             <span>Module d'Analyse Cutanée Avancé & Métriques Biomédicales</span>
           </div>
           <h1 className="text-3xl font-serif text-stone-900 font-bold">
-            Diagnostic Précis de la Peau : Visage & Corps
+            {t.diagnostic.title}
           </h1>
           <p className="text-sm text-stone-600 mt-1 max-w-2xl">
-            Mesurez l'hydratation, les lipides, les rides, les taches et la fermeté. Obtenez un diagnostic personnalisé
-            avec protocole cabine sur-mesure et enregistrement automatique dans le dossier de suivi de la cliente.
+            {t.diagnostic.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {report && (
             <button
               onClick={() => setShowPrintModal(true)}
-              className="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors"
+              className="px-4 py-2.5 bg-rose-900 hover:bg-rose-800 active:scale-[0.98] text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              Imprimer Ordonnance Beauté
+              <FileDown className="w-4 h-4" />
+              Exporter en PDF
             </button>
           )}
         </div>
@@ -292,7 +429,7 @@ export const SkinDiagnosticView: React.FC<Props> = ({
           {/* 1. Care Mode Switch (Visage vs Corps) */}
           <div className="bg-white rounded-2xl border border-stone-200 shadow-xs p-5 space-y-4">
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">
-              1. Type de Soin & Zone d'Intervention
+              1. {t.diagnostic.areaFace} / {t.diagnostic.areaBody}
             </label>
 
             {/* Visage vs Corps Tabs */}
@@ -304,14 +441,14 @@ export const SkinDiagnosticView: React.FC<Props> = ({
                   setSelectedZone('Visage Complet (Global)');
                   setSelectedConcerns(['Déshydratation & Tiraillements', 'Rougeurs diffuses / Couperose']);
                 }}
-                className={`py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all ${
+                className={`py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   treatmentArea === 'visage'
                     ? 'bg-white text-rose-950 shadow-xs'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-rose-600" />
-                Soin du Visage
+                {t.diagnostic.areaFace}
               </button>
               <button
                 type="button"
@@ -320,14 +457,14 @@ export const SkinDiagnosticView: React.FC<Props> = ({
                   setSelectedZone('Cuisses & Jambes');
                   setSelectedConcerns(['Cellulite adipeuse / Peau d’orange', 'Relâchement cutané & Manque de fermeté']);
                 }}
-                className={`py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all ${
+                className={`py-3 px-4 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   treatmentArea === 'corps'
                     ? 'bg-white text-rose-950 shadow-xs'
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
                 <Activity className="w-4 h-4 text-rose-600" />
-                Soin du Corps
+                {t.diagnostic.areaBody}
               </button>
             </div>
 
@@ -489,6 +626,30 @@ export const SkinDiagnosticView: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Quick 1-Click Skin Presets for Face & Body */}
+            <div className="pt-2 border-t border-stone-100 space-y-2">
+              <span className="text-[11px] font-semibold text-stone-700 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-rose-700" />
+                Échantillons cliniques types en 1 clic (Visage & Corps) :
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {SAMPLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => applySamplePreset(preset)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                      photoBase64 === preset.photoUrl
+                        ? 'bg-rose-900 text-white shadow-2xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {cameraActive && (
               <div className="relative aspect-4/3 bg-black rounded-xl overflow-hidden border border-stone-800 mt-2">
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
@@ -637,13 +798,115 @@ export const SkinDiagnosticView: React.FC<Props> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowPrintModal(true)}
-                    className="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
+                    className="px-3.5 py-2 bg-rose-900 hover:bg-rose-800 active:scale-[0.98] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <FileDown className="w-3.5 h-3.5" />
+                    Exporter en PDF
+                  </button>
+                  <button
+                    onClick={() => setShowPrintModal(true)}
+                    className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors cursor-pointer"
+                    title="Imprimer"
                   >
                     <Printer className="w-3.5 h-3.5" />
-                    Fiche Ordonnance (PDF)
                   </button>
                 </div>
               </div>
+
+              {/* AI IDENTIFIED COMMON SKIN CONDITIONS BREAKDOWN */}
+              {report.identifiedConditions && report.identifiedConditions.length > 0 && (
+                <div className="p-6 space-y-4 bg-rose-50/20 border-b border-stone-200/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-rose-800 block">
+                        Diagnostic Cutané Avancé par IA (Visage & Corps)
+                      </span>
+                      <h3 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-rose-700" />
+                        Conditions Cutanées Identifiées & Protocoles Ciblés
+                      </h3>
+                    </div>
+                    <span className="text-[11px] font-semibold text-rose-900 bg-rose-100/80 px-2.5 py-1 rounded-lg self-start sm:self-center">
+                      {report.treatmentArea === 'corps' ? 'Analyse Corporelle' : 'Analyse Faciale'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {report.identifiedConditions.map((cond) => (
+                      <div
+                        key={cond.id}
+                        className={`p-4 rounded-2xl border text-xs space-y-3 transition-all ${
+                          cond.detected
+                            ? 'bg-white border-rose-200/90 shadow-2xs'
+                            : 'bg-stone-50/70 border-stone-200/80 opacity-75'
+                        }`}
+                      >
+                        {/* Header of Condition */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-2.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-stone-900">{cond.name}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                cond.detected
+                                  ? cond.severity === 'sévère'
+                                    ? 'bg-rose-600 text-white'
+                                    : cond.severity === 'modérée'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-amber-100 text-amber-900'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {cond.detected ? `Détecté · Sévérité ${cond.severity}` : 'Non détecté / Sain'}
+                            </span>
+                            {cond.affectedZone && (
+                              <span className="text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
+                                Zone : {cond.affectedZone}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-stone-500">
+                            <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Indice IA : {cond.confidenceScore}%</span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-stone-700 leading-relaxed text-[11px]">{cond.description}</p>
+
+                        {/* Suggested Pro Cabin Treatment */}
+                        <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
+                          <div className="font-bold text-stone-900 flex items-center gap-1.5 text-[11px] text-rose-900">
+                            <Zap className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Soin Professionnel Recommandé en Cabine :</span>
+                          </div>
+                          <p className="text-stone-700 text-[11px] pl-5">{cond.suggestedProTreatment}</p>
+                        </div>
+
+                        {/* Suggested Tailored Products */}
+                        {cond.suggestedProducts && cond.suggestedProducts.length > 0 && (
+                          <div className="space-y-1.5 pt-0.5">
+                            <span className="font-semibold text-stone-800 text-[10px] uppercase tracking-wider block">
+                              Prescription d’Actifs & Produits Recommandés :
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {cond.suggestedProducts.map((prod, pIdx) => (
+                                <span
+                                  key={pIdx}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-950 border border-rose-200/60 font-medium text-[11px] flex items-center gap-1"
+                                >
+                                  <CheckCircle className="w-3 h-3 text-rose-600" />
+                                  {prod}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* ADVANCED NUMERICAL SKIN METRICS DASHBOARD */}
               <div className="p-6 space-y-4 bg-stone-50/40">
@@ -938,12 +1201,27 @@ export const SkinDiagnosticView: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                {/* Professional PDF Export Callout Card */}
+                <div className="mt-4 p-4 bg-gradient-to-r from-rose-950 to-stone-900 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      <FileDown className="w-5 h-5 text-rose-300" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs sm:text-sm">
+                        Protocole Cabine & Ordonnance Beauté Prêts
+                      </div>
+                      <div className="text-[11px] text-stone-300">
+                        Document officiel à remettre à {report.clientName} (format A4 imprimable ou PDF)
+                      </div>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setShowPrintModal(true)}
-                    className="text-xs font-semibold text-rose-900 hover:text-rose-950 flex items-center gap-1.5 underline"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shrink-0 shadow-xs cursor-pointer"
                   >
-                    Voir l’ordonnance complète et imprimer la fiche cliente →
+                    <FileDown className="w-4 h-4" />
+                    Exporter en PDF
                   </button>
                 </div>
               </div>

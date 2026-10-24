@@ -1,6 +1,7 @@
 import React from 'react';
 import { DiagnosticReport } from '../types';
-import { Printer, X, Sparkles, ShieldAlert, CheckCircle2, HeartHandshake } from 'lucide-react';
+import { Printer, FileDown, X, Sparkles, ShieldAlert, CheckCircle2, HeartHandshake } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   report: DiagnosticReport;
@@ -15,6 +16,7 @@ export const PrintablePrescriptionModal: React.FC<Props> = ({
   instituteName = "Institut Derm'Esthétique & Bien-Être",
   estheticianName = "Émilie - Dermo-Esthéticienne Conseil",
 }) => {
+  const { t } = useLanguage();
   const handlePrint = () => {
     window.print();
   };
@@ -31,14 +33,15 @@ export const PrintablePrescriptionModal: React.FC<Props> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+              className="px-4 py-2 bg-rose-900 hover:bg-rose-800 text-white rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              Imprimer / Enregistrer PDF
+              <FileDown className="w-4 h-4" />
+              Exporter en PDF / Imprimer
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-200 transition-colors"
+              title={t.common.close}
+              className="p-2 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-200 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -132,6 +135,39 @@ export const PrintablePrescriptionModal: React.FC<Props> = ({
               </span>
             </div>
           </div>
+
+          {/* Identified Skin Conditions & Tailored Care */}
+          {report.identifiedConditions && report.identifiedConditions.filter((c) => c.detected).length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-600"></span>
+                Conditions Cutanées Identifiées par IA & Soins Ciblés
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {report.identifiedConditions
+                  .filter((c) => c.detected)
+                  .map((cond) => (
+                    <div key={cond.id} className="p-3 bg-rose-50/50 border border-rose-200/80 rounded-xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-stone-900">{cond.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-200 text-rose-900 font-bold uppercase">
+                          Sévérité {cond.severity}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 leading-snug">{cond.description}</p>
+                      <div className="text-[10px] text-rose-900 pt-0.5">
+                        <strong>Protocole cabine :</strong> {cond.suggestedProTreatment}
+                      </div>
+                      {cond.suggestedProducts && cond.suggestedProducts.length > 0 && (
+                        <div className="text-[10px] text-stone-500">
+                          <strong>Actifs prescrits :</strong> {cond.suggestedProducts.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Cabin Protocol Realized / Recommended */}
           <div className="space-y-3">
