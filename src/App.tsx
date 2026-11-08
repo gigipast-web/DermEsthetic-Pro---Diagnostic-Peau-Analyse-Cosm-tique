@@ -4,6 +4,7 @@ import { ProductScannerView } from './components/ProductScannerView';
 import { SkinDiagnosticView } from './components/SkinDiagnosticView';
 import { ActivesAndToxicGuideView } from './components/ActivesAndToxicGuideView';
 import { ClientsView } from './components/ClientsView';
+import { HomeScreen } from './components/HomeScreen';
 import { ClientProfile, DiagnosticReport, ProductAnalysisResult, PractitionerUser, PurchasedProductRecord, Appointment } from './types';
 import { SAMPLE_CLIENTS, VERIFIED_PRODUCTS_CATALOG, SAMPLE_APPOINTMENTS } from './data/cosmeticsDatabase';
 import { Award, Smartphone } from 'lucide-react';
@@ -248,7 +249,7 @@ const INITIAL_DIAGNOSTICS: DiagnosticReport[] = [
 
 function AppContent() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<MainTab>('scanner');
+  const [activeTab, setActiveTab] = useState<MainTab>('home');
 
   // Practitioner user state & auth modals
   const [currentUser, setCurrentUser] = useState<PractitionerUser | null>(() => {
@@ -498,6 +499,14 @@ function AppContent() {
 
       {/* Main Content View Switcher */}
       <main className="flex-1 pb-16">
+        {activeTab === 'home' && (
+          <HomeScreen
+            onStartAnalysis={() => setActiveTab('diagnostic')}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onOpenGooglePlayModal={() => setShowGooglePlayModal(true)}
+          />
+        )}
+
         {activeTab === 'scanner' && (
           <ProductScannerView
             clients={clients}

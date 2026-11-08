@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Home,
   Scan,
   Activity,
   ShieldCheck,
@@ -14,7 +15,7 @@ import { LanguageSelector } from './LanguageSelector';
 import { PractitionerUser } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
-export type MainTab = 'scanner' | 'diagnostic' | 'actives' | 'clients';
+export type MainTab = 'home' | 'scanner' | 'diagnostic' | 'actives' | 'clients';
 
 interface Props {
   activeTab: MainTab;
@@ -43,14 +44,18 @@ export const Navbar: React.FC<Props> = ({
     <header className="no-print sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-2xs">
       <div className="max-w-7xl mx-auto px-2 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-20 gap-1 sm:gap-4">
-          {/* Logo & Institute Branding - Compact on 9/16 mobile */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0">
-            <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl bg-gradient-to-br from-rose-950 via-rose-900 to-stone-900 text-rose-200 flex items-center justify-center shadow-xs shrink-0">
+          {/* Logo & Institute Branding - Clickable to Home */}
+          <button
+            onClick={() => setActiveTab('home')}
+            className="flex items-center gap-1.5 sm:gap-3 shrink min-w-0 text-left cursor-pointer group"
+            title="Accueil Dermesthetic Pro"
+          >
+            <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl bg-gradient-to-br from-rose-950 via-rose-900 to-stone-900 text-rose-200 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <Sparkles className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-rose-300" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1 sm:gap-2">
-                <span className="font-serif font-bold text-xs sm:text-xl text-stone-900 tracking-tight truncate">
+                <span className="font-serif font-bold text-xs sm:text-xl text-stone-900 tracking-tight truncate group-hover:text-rose-950 transition-colors">
                   DermEsthetic <span className="text-rose-800 font-sans text-[9px] sm:text-sm font-semibold tracking-wide">PRO</span>
                 </span>
                 <span className="hidden lg:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200/80">
@@ -63,10 +68,21 @@ export const Navbar: React.FC<Props> = ({
                   : t.nav.subTitleLoggedOut}
               </p>
             </div>
-          </div>
+          </button>
 
           {/* Navigation Items (Segmented buttons on desktop) */}
           <nav className="hidden lg:flex items-center gap-1 p-1 bg-stone-100 rounded-2xl border border-stone-200/60">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'home'
+                  ? 'bg-white text-stone-900 shadow-2xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Home className="w-3.5 h-3.5 text-rose-700" />
+              Accueil
+            </button>
             <button
               onClick={() => setActiveTab('scanner')}
               className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
@@ -187,6 +203,17 @@ export const Navbar: React.FC<Props> = ({
 
         {/* Medium and Mobile Navigation Bar - In 9/16 mode: All tabs framed & accessible */}
         <div className="lg:hidden flex items-center overflow-x-auto py-2 gap-1.5 border-t border-stone-100 no-scrollbar">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+              activeTab === 'home'
+                ? 'bg-rose-950 text-white shadow-2xs'
+                : 'text-stone-600 hover:text-stone-900 bg-stone-50'
+            }`}
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>Accueil</span>
+          </button>
           <button
             onClick={() => setActiveTab('scanner')}
             className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
