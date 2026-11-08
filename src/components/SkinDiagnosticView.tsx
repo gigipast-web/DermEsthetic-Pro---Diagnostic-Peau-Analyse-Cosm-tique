@@ -248,13 +248,24 @@ export const SkinDiagnosticView: React.FC<Props> = ({
   // Start skin macro camera
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+      } catch (e1) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' } },
+          });
+        } catch (e2) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        await videoRef.current.play().catch(() => {});
       }
       setCameraActive(true);
     } catch (err) {
@@ -651,8 +662,20 @@ export const SkinDiagnosticView: React.FC<Props> = ({
             </div>
 
             {cameraActive && (
-              <div className="relative aspect-4/3 bg-black rounded-xl overflow-hidden border border-stone-800 mt-2">
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <div className="relative aspect-4/3 bg-black rounded-xl overflow-hidden border border-stone-800 mt-2 shadow-inner">
+                <video
+                  ref={(el) => {
+                    videoRef.current = el;
+                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                      el.srcObject = streamRef.current;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
                 <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
                   <button
                     type="button"

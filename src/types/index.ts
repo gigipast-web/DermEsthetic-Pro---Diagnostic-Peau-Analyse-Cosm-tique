@@ -268,6 +268,36 @@ export interface ClientProfile {
   appointments?: Appointment[];
 }
 
+export type SubscriptionPlanId = 'starter' | 'pro' | 'prestige';
+export type SubscriptionBillingCycle = 'monthly' | 'yearly';
+export type SubscriptionStatus = 'active' | 'trial' | 'cancelled';
+
+export interface SubscriptionInvoice {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  amount: number;
+  taxAmount: number;
+  planName: string;
+  billingCycle: SubscriptionBillingCycle;
+  status: 'paid' | 'pending';
+  pdfDownloadName?: string;
+}
+
+export interface UserSubscription {
+  planId: SubscriptionPlanId;
+  planName: string;
+  priceMonthly: number;
+  billingCycle: SubscriptionBillingCycle;
+  status: SubscriptionStatus;
+  startedAt: string;
+  renewsAt: string;
+  paymentMethodBrand?: 'visa' | 'mastercard' | 'sepa';
+  paymentMethodLast4?: string;
+  autoRenew: boolean;
+  invoices: SubscriptionInvoice[];
+}
+
 export interface PractitionerUser {
   id: string;
   fullName: string;
@@ -283,4 +313,5 @@ export interface PractitionerUser {
   lastLoginAt: string;
   avatarColor?: string;
   isDemo?: boolean;
+  subscription?: UserSubscription;
 }

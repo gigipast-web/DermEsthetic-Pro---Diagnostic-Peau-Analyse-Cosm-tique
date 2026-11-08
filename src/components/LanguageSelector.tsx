@@ -58,12 +58,12 @@ export const LanguageSelector: React.FC<Props> = ({
         return 'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white hover:bg-rose-50/50 border border-stone-200 text-stone-800 text-xs font-medium transition-all cursor-pointer shadow-2xs';
       case 'navbar':
       default:
-        return 'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-stone-100/90 hover:bg-rose-50/80 active:bg-stone-200/70 border border-stone-200/90 text-stone-800 text-xs font-semibold transition-all cursor-pointer group shadow-2xs';
+        return 'flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-stone-100/90 hover:bg-rose-50/80 active:bg-stone-200/70 border border-stone-200/90 text-stone-800 text-xs font-semibold transition-all cursor-pointer group shadow-2xs shrink-0';
     }
   };
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
+    <div className={`relative inline-block text-left shrink-0 ${className}`} ref={dropdownRef}>
       {/* Trigger Button */}
       <button
         type="button"
@@ -73,22 +73,22 @@ export const LanguageSelector: React.FC<Props> = ({
         aria-expanded={isOpen}
         title={`Changer de langue (actuel : ${currentLanguageInfo.nativeName})`}
       >
-        <span className="text-base leading-none select-none" aria-hidden="true">
+        <span className="text-sm sm:text-base leading-none select-none" aria-hidden="true">
           {currentLanguageInfo.flag}
         </span>
 
         {showLabel && (
-          <span className="hidden sm:inline font-medium text-stone-700 group-hover:text-stone-900">
+          <span className="hidden md:inline font-medium text-stone-700 group-hover:text-stone-900">
             {currentLanguageInfo.nativeName}
           </span>
         )}
 
-        <span className="sm:hidden font-bold text-[11px] text-stone-700 uppercase">
+        <span className="hidden sm:inline md:hidden font-bold text-[11px] text-stone-700 uppercase">
           {currentLanguageInfo.code}
         </span>
 
         <ChevronDown
-          className={`w-3.5 h-3.5 text-stone-500 group-hover:text-stone-800 transition-transform duration-200 ${
+          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-stone-500 group-hover:text-stone-800 transition-transform duration-200 ${
             isOpen ? 'rotate-180 text-rose-800' : ''
           }`}
         />

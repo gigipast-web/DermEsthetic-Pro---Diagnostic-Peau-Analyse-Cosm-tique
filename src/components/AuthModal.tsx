@@ -127,10 +127,10 @@ export const AuthModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
-      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-stone-200/90 flex flex-col md:flex-row my-auto">
-        {/* Left Side: Brand Identity & Highlights */}
-        <div className="md:w-5/12 bg-gradient-to-br from-rose-950 via-rose-900 to-stone-900 p-6 sm:p-8 text-white flex flex-col justify-between relative overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn">
+      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-stone-200/90 flex flex-col md:flex-row my-auto max-h-[95vh] overflow-y-auto">
+        {/* Left Side: Brand Identity & Highlights (Desktop only to prevent pushing Inscription tab out of mobile 9/16 frame) */}
+        <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-rose-950 via-rose-900 to-stone-900 p-6 sm:p-8 text-white flex-col justify-between relative overflow-hidden">
           {/* Subtle decorative circles */}
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-rose-500/10 blur-2xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
@@ -206,11 +206,39 @@ export const AuthModal: React.FC<Props> = ({
         </div>
 
         {/* Right Side: Authentication Forms */}
-        <div className="md:w-7/12 p-6 sm:p-8 bg-white flex flex-col justify-between">
+        <div className="w-full md:w-7/12 p-4 sm:p-8 bg-white flex flex-col justify-between">
           <div>
-            {/* Top Switcher: Inscription / Connexion & Language Selector */}
-            <div className="flex items-center justify-between gap-2 mb-6">
-              <div className="p-1 bg-stone-100 rounded-2xl flex items-center w-full max-w-xs border border-stone-200/80">
+            {/* Mobile Header Banner (Ensures Inscription tab is immediately framed on 9/16 screens) */}
+            <div className="md:hidden flex items-center justify-between pb-3 mb-4 border-b border-stone-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-950 to-stone-900 text-rose-200 flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-4 h-4 text-rose-300" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-stone-900 text-sm leading-tight">
+                    {t.auth.brandTitle}{' '}
+                    <span className="text-rose-800 text-[10px] font-sans font-bold">PRO</span>
+                  </h3>
+                  <p className="text-[10px] text-stone-500">{t.auth.brandSubtitle}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <LanguageSelector variant="modal" showLabel={false} />
+                {canDismiss && onClose && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-1 text-stone-400 hover:text-stone-700 text-sm font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Top Switcher: Inscription / Connexion */}
+            <div className="flex items-center justify-between gap-2 mb-5">
+              <div className="p-1 bg-stone-100 rounded-2xl flex items-center w-full border border-stone-200/80">
                 <button
                   type="button"
                   onClick={() => {
@@ -241,8 +269,7 @@ export const AuthModal: React.FC<Props> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Multilingual Selector in Auth Modal */}
+              <div className="hidden md:flex items-center gap-2">
                 <LanguageSelector variant="modal" showLabel={false} />
 
                 {canDismiss && onClose && (
@@ -256,6 +283,7 @@ export const AuthModal: React.FC<Props> = ({
                 )}
               </div>
             </div>
+
 
             {/* Error / Success Notifications */}
             {errorMessage && (

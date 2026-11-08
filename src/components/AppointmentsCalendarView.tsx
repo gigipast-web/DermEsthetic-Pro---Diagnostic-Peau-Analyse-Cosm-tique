@@ -35,12 +35,7 @@ interface Props {
   onEditAppointment: (appointment: Appointment) => void;
 }
 
-const MONTH_NAMES_FR = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-];
-
-const DAYS_HEADER_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+import { useLanguage } from '../context/LanguageContext';
 
 export const AppointmentsCalendarView: React.FC<Props> = ({
   appointments,
@@ -52,6 +47,8 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
   onOpenNewAppointmentModal,
   onEditAppointment,
 }) => {
+  const { t, currentLanguage } = useLanguage();
+
   // Calendar month state - defaults to October 2026 based on app current demo date
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     // Check if there are appointments to base month on
@@ -70,6 +67,31 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+
+  const formattedMonthYear = useMemo(() => {
+    try {
+      const dtf = new Intl.DateTimeFormat(currentLanguage, { month: 'long', year: 'numeric' });
+      const str = dtf.format(currentDate);
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    } catch {
+      return `${currentDate.toLocaleString('default', { month: 'long' })} ${currentYear}`;
+    }
+  }, [currentDate, currentLanguage, currentYear]);
+
+  const localizedDaysHeader = useMemo(() => {
+    try {
+      const baseMonday = new Date(2026, 9, 19); // Oct 19, 2026 is a Monday
+      const dtf = new Intl.DateTimeFormat(currentLanguage, { weekday: 'short' });
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(baseMonday);
+        d.setDate(baseMonday.getDate() + i);
+        const str = dtf.format(d).replace('.', '');
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      });
+    } catch {
+      return ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    }
+  }, [currentLanguage]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
@@ -256,28 +278,28 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
             <CheckCircle2 className="w-3 h-3" />
-            Confirmé
+            {t.agenda.statusConfirmed}
           </span>
         );
       case 'en_attente':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
             <AlertCircle className="w-3 h-3" />
-            En attente
+            {t.agenda.statusPending}
           </span>
         );
       case 'termine':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
             <Check className="w-3 h-3" />
-            Effectué
+            {t.agenda.statusCompleted}
           </span>
         );
       case 'annule':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-500 border border-stone-200 line-through">
             <XCircle className="w-3 h-3" />
-            Annulé
+            {t.agenda.statusCancelled}
           </span>
         );
     }
@@ -326,10 +348,10 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
             <CalendarIcon className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-stone-500 font-medium block">Rendez-vous programmés</span>
+            <span className="text-[11px] text-stone-500 font-medium block">{t.agenda.kpiUpcoming}</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-bold font-serif text-stone-900">{totalUpcoming}</span>
-              <span className="text-[10px] text-stone-400">à venir</span>
+              <span className="text-[10px] text-stone-400">({t.agenda.allVisits})</span>
             </div>
           </div>
         </div>
@@ -339,10 +361,10 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-stone-500 font-medium block">Visites Aujourd'hui</span>
+            <span className="text-[11px] text-stone-500 font-medium block">{t.agenda.kpiToday}</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-bold font-serif text-stone-900">{appointmentsToday.length}</span>
-              <span className="text-[10px] text-amber-700 font-medium">en cabine</span>
+              <span className="text-[10px] text-amber-700 font-medium">cabine</span>
             </div>
           </div>
         </div>
@@ -352,10 +374,10 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-stone-500 font-medium block">Visites Cette Semaine</span>
+            <span className="text-[11px] text-stone-500 font-medium block">{t.agenda.kpiWeek}</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-bold font-serif text-stone-900">{appointmentsThisWeek.length}</span>
-              <span className="text-[10px] text-emerald-700 font-medium">créneaux</span>
+              <span className="text-[10px] text-emerald-700 font-medium">{t.agenda.thisWeek}</span>
             </div>
           </div>
         </div>
@@ -365,10 +387,10 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-stone-500 font-medium block">Prestations Prévisionnelles</span>
+            <span className="text-[11px] text-stone-500 font-medium block">{t.agenda.kpiRevenue}</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-bold font-serif text-stone-900">{estimatedRevenue} €</span>
-              <span className="text-[10px] text-stone-400">confirmé</span>
+              <span className="text-[10px] text-stone-400">{t.agenda.statusConfirmed}</span>
             </div>
           </div>
         </div>
@@ -382,13 +404,13 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
           <div className="p-4 sm:p-5 border-b border-stone-200/80 bg-stone-50/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <h2 className="font-serif font-bold text-lg sm:text-xl text-stone-900">
-                {MONTH_NAMES_FR[currentMonth]} {currentYear}
+                {formattedMonthYear}
               </h2>
               <button
                 onClick={handleGoToday}
                 className="px-2.5 py-1 text-[11px] font-semibold text-rose-900 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors cursor-pointer"
               >
-                Aujourd'hui
+                {t.agenda.todayBtn}
               </button>
             </div>
 
@@ -396,14 +418,14 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
               <div className="flex items-center bg-white border border-stone-200 rounded-xl p-0.5 shadow-2xs">
                 <button
                   onClick={handlePrevMonth}
-                  aria-label="Mois précédent"
+                  aria-label="Previous month"
                   className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleNextMonth}
-                  aria-label="Mois suivant"
+                  aria-label="Next month"
                   className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -415,14 +437,14 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                 className="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Nouveau Créneau</span>
+                <span>{t.agenda.newAppointmentBtn}</span>
               </button>
             </div>
           </div>
 
           {/* Days of week header */}
           <div className="grid grid-cols-7 border-b border-stone-200 text-center text-xs font-semibold text-stone-500 bg-stone-50/50 py-2.5">
-            {DAYS_HEADER_FR.map((d, i) => (
+            {localizedDaysHeader.map((d, i) => (
               <div key={i} className={i >= 5 ? 'text-rose-900/70' : ''}>
                 {d}
               </div>
@@ -534,16 +556,16 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
           <div className="p-3 bg-stone-50/80 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-500" /> Soin Visage
+                <span className="w-2 h-2 rounded-full bg-rose-500" /> {t.agenda.careFace}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Soin Corps
+                <span className="w-2 h-2 rounded-full bg-emerald-500" /> {t.agenda.careBody}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" /> Diagnostic IA
+                <span className="w-2 h-2 rounded-full bg-indigo-500" /> {t.agenda.careDiagnostic}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500" /> Cure / Suivi
+                <span className="w-2 h-2 rounded-full bg-amber-500" /> {t.agenda.careCure}
               </span>
             </div>
 
@@ -555,7 +577,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                 }}
                 className="text-rose-900 font-semibold underline text-[11px] hover:text-rose-950 cursor-pointer"
               >
-                Réinitialiser filtre date
+                {t.agenda.resetDateFilter}
               </button>
             )}
           </div>
@@ -569,7 +591,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-rose-800" />
                 <h3 className="font-serif font-bold text-sm text-stone-900">
-                  Récapitulatif des Visites ({filteredAppointments.length})
+                  {t.agenda.title} ({filteredAppointments.length})
                 </h3>
               </div>
               <button
@@ -577,7 +599,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                 className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Créneau</span>
+                <span>{t.agenda.newAppointmentBtn}</span>
               </button>
             </div>
 
@@ -594,7 +616,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Toutes ({appointments.length})
+                {t.agenda.allVisits} ({appointments.length})
               </button>
               <button
                 onClick={() => setFilterPeriod('today')}
@@ -604,7 +626,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Aujourd'hui ({appointmentsToday.length})
+                {t.agenda.today} ({appointmentsToday.length})
               </button>
               <button
                 onClick={() => setFilterPeriod('week')}
@@ -614,7 +636,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                     : 'text-stone-600 hover:text-stone-900'
                 }`}
               >
-                Cette semaine ({appointmentsThisWeek.length})
+                {t.agenda.thisWeek} ({appointmentsThisWeek.length})
               </button>
               {selectedDateStr && (
                 <button
@@ -625,7 +647,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                       : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
-                  Le {selectedDateStr}
+                  {selectedDateStr}
                 </button>
               )}
             </div>
@@ -635,7 +657,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
-                placeholder="Rechercher par cliente, soin ou cabine..."
+                placeholder={t.agenda.searchPlaceholder}
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs placeholder:text-stone-400 focus:ring-2 focus:ring-rose-500/20"
@@ -649,11 +671,11 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                 onChange={(e) => setFilterStatus(e.target.value as any)}
                 className="px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-700"
               >
-                <option value="all">Tous statuts</option>
-                <option value="confirme">Confirmé</option>
-                <option value="en_attente">En attente</option>
-                <option value="termine">Effectué</option>
-                <option value="annule">Annulé</option>
+                <option value="all">{t.agenda.allStatuses}</option>
+                <option value="confirme">{t.agenda.statusConfirmed}</option>
+                <option value="en_attente">{t.agenda.statusPending}</option>
+                <option value="termine">{t.agenda.statusCompleted}</option>
+                <option value="annule">{t.agenda.statusCancelled}</option>
               </select>
 
               <select
@@ -661,12 +683,12 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                 onChange={(e) => setFilterType(e.target.value as any)}
                 className="px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-700"
               >
-                <option value="all">Tous soins</option>
-                <option value="visage">Visage</option>
-                <option value="corps">Corps</option>
-                <option value="diagnostic">Diagnostic IA</option>
-                <option value="cure_suivi">Cure / Suivi</option>
-                <option value="peeling">Peeling</option>
+                <option value="all">{t.agenda.allCareTypes}</option>
+                <option value="visage">{t.agenda.careFace}</option>
+                <option value="corps">{t.agenda.careBody}</option>
+                <option value="diagnostic">{t.agenda.careDiagnostic}</option>
+                <option value="cure_suivi">{t.agenda.careCure}</option>
+                <option value="peeling">{t.agenda.carePeeling}</option>
               </select>
             </div>
           </div>
@@ -697,7 +719,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                           </span>
                         </div>
                         <span className="text-[11px] text-stone-600 block font-medium">
-                          📅 {apt.date} {apt.date === todayStr ? "(Aujourd'hui)" : ''}
+                          📅 {apt.date} {apt.date === todayStr ? `(${t.agenda.today})` : ''}
                         </span>
                       </div>
 
@@ -730,10 +752,10 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                       {clientObj && (
                         <button
                           onClick={() => onSelectClientDossier(clientObj)}
-                          title="Accéder au dossier client"
+                          title={t.agenda.clientRecord}
                           className="px-2 py-1 bg-white hover:bg-rose-50 text-rose-900 border border-stone-200 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
                         >
-                          <span>Fiche</span>
+                          <span>{t.agenda.clientRecord}</span>
                           <ArrowRight className="w-3 h-3" />
                         </button>
                       )}
@@ -772,7 +794,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                             onClick={() => handleStatusChange(apt, 'confirme')}
                             className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer"
                           >
-                            Confirmer
+                            {t.agenda.confirmAction}
                           </button>
                         )}
                         {apt.status !== 'termine' && (
@@ -780,7 +802,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                             onClick={() => handleStatusChange(apt, 'termine')}
                             className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer"
                           >
-                            Terminer
+                            {t.agenda.markCompletedAction}
                           </button>
                         )}
                         {apt.status !== 'annule' && (
@@ -788,7 +810,7 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                             onClick={() => handleStatusChange(apt, 'annule')}
                             className="px-2 py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-[10px] font-medium transition-colors cursor-pointer"
                           >
-                            Annuler
+                            {t.agenda.cancelAction}
                           </button>
                         )}
                       </div>
@@ -798,17 +820,17 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
                           onClick={() => onEditAppointment(apt)}
                           className="px-2 py-1 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                         >
-                          Modifier
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm(`Supprimer définitivement le créneau de ${apt.clientName} ?`)) {
+                            if (window.confirm(`Supprimer le créneau de ${apt.clientName} ?`)) {
                               onDeleteAppointment(apt.id);
                             }
                           }}
                           className="px-2 py-1 text-rose-700 hover:text-rose-900 hover:bg-rose-50 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                         >
-                          Supprimer
+                          {t.common.delete}
                         </button>
                       </div>
                     </div>
@@ -818,14 +840,13 @@ export const AppointmentsCalendarView: React.FC<Props> = ({
             ) : (
               <div className="p-8 bg-white rounded-2xl border border-stone-200 text-center text-xs text-stone-400 space-y-2">
                 <CalendarIcon className="w-8 h-8 mx-auto text-stone-300" />
-                <p className="font-medium text-stone-600">Aucun rendez-vous sur cette période.</p>
-                <p className="text-[11px]">Cliquez sur "Nouveau Créneau" pour planifier une visite en cabine.</p>
+                <p className="font-medium text-stone-600">{t.agenda.noAppointmentsPeriod}</p>
                 <button
                   onClick={() => onOpenNewAppointmentModal(selectedDateStr || todayStr)}
                   className="px-3 py-1.5 bg-rose-950 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 mt-2 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Ajouter un créneau</span>
+                  <span>{t.agenda.newAppointmentBtn}</span>
                 </button>
               </div>
             )}

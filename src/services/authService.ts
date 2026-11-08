@@ -1,4 +1,5 @@
-import { PractitionerUser } from '../types';
+import { PractitionerUser, UserSubscription } from '../types';
+import { createDefaultSubscription } from '../data/subscriptionPlans';
 
 const STORAGE_USERS_KEY = 'dermesthetic_practitioners_v1';
 const STORAGE_CURRENT_USER_KEY = 'dermesthetic_current_user_v1';
@@ -21,6 +22,7 @@ export const DEMO_PRACTITIONER: PractitionerUser = {
   registeredAt: '2026-01-15T09:00:00Z',
   lastLoginAt: new Date().toISOString(),
   isDemo: true,
+  subscription: createDefaultSubscription('pro'),
 };
 
 export const ESTHETICIAN_ROLES = [
@@ -54,11 +56,19 @@ export function getRegisteredUsers(): PractitionerUser[] {
 export function getCurrentUser(): PractitionerUser | null {
   try {
     const raw = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as PractitionerUser;
+    if (!raw) {
+      localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(DEMO_PRACTITIONER));
+      return DEMO_PRACTITIONER;
+    }
+    const parsed = JSON.parse(raw) as PractitionerUser;
+    if (!parsed.subscription) {
+      parsed.subscription = createDefaultSubscription('pro');
+      localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch (e) {
     console.error('Error reading current user from storage:', e);
-    return null;
+    return DEMO_PRACTITIONER;
   }
 }
 
@@ -113,6 +123,7 @@ export function registerUser(params: {
     registeredAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
     isDemo: false,
+    subscription: createDefaultSubscription('pro'),
   };
 
   const updatedList = [newUser, ...users];
@@ -189,4 +200,16 @@ export function deleteUserAccount(userId: string): void {
   if (current?.id === userId) {
     localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
   }
+}
+
+export function updateUserSubscription(userId: string, subscription: UserSubscription): PractitionerUser {
+  const users = getRegisteredUsers();
+  const current = getCurrentUser();
+  const target = (current && current.id === userId) ? current : (users.find((u) => u.id === userId) || DEMO_PRACTITIONER);
+  const updatedUser: PractitionerUser = {
+    ...target,
+    subscription,
+  };
+  updateUserProfile(updatedUser);
+  return updatedUser;
 }

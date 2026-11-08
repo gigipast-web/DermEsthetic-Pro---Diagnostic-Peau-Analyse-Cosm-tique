@@ -317,14 +317,14 @@ export const ClientsView: React.FC<Props> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-rose-700 mb-1">
             <Calendar className="w-4 h-4" />
-            <span>Gestion Cabine, Rendez-vous & Dossiers Clients</span>
+            <span>Gestion Cabine, Rendez-vous & Dossiers</span>
           </div>
           <h1 className="text-3xl font-serif text-stone-900 font-bold">
-            {mainViewMode === 'agenda' ? 'Agenda & Planification des Visites' : t.clients.title}
+            {mainViewMode === 'agenda' ? t.agenda.title : t.clients.title}
           </h1>
           <p className="text-sm text-stone-600 mt-1 max-w-2xl">
             {mainViewMode === 'agenda'
-              ? 'Planifiez les créneaux de soins cabine, suivez le calendrier récapitulatif des visites et synchronisez les dossiers clientes.'
+              ? t.agenda.subtitle
               : t.clients.subtitle}
           </p>
         </div>
@@ -335,7 +335,7 @@ export const ClientsView: React.FC<Props> = ({
             className="px-4 py-2.5 bg-rose-950 hover:bg-rose-900 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
           >
             <Calendar className="w-4 h-4 text-rose-300" />
-            <span>Nouveau Rendez-vous</span>
+            <span>{t.agenda.newAppointmentBtn}</span>
           </button>
           <button
             onClick={() => setShowNewClientModal(true)}
@@ -359,7 +359,7 @@ export const ClientsView: React.FC<Props> = ({
             }`}
           >
             <Calendar className="w-4 h-4 text-rose-800" />
-            <span>Agenda & Calendrier des Visites</span>
+            <span>{t.agenda.tabAgenda}</span>
             {upcomingCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900">
                 {upcomingCount}
@@ -376,7 +376,7 @@ export const ClientsView: React.FC<Props> = ({
             }`}
           >
             <Users className="w-4 h-4 text-stone-700" />
-            <span>Dossiers Clients & Bilans ({clients.length})</span>
+            <span>{t.agenda.tabDossiers} ({clients.length})</span>
           </button>
         </div>
 
@@ -643,7 +643,7 @@ export const ClientsView: React.FC<Props> = ({
                     }`}
                   >
                     <Calendar className="w-3.5 h-3.5 text-rose-800" />
-                    Rendez-vous ({clientAppointments.length})
+                    {t.agenda.tabAgenda} ({clientAppointments.length})
                   </button>
                 </div>
 
@@ -993,7 +993,7 @@ export const ClientsView: React.FC<Props> = ({
                           className="px-3.5 py-1.5 bg-rose-950 hover:bg-rose-900 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors self-start sm:self-auto cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          Planifier un Rendez-vous
+                          {t.agenda.planAppointment}
                         </button>
                       </div>
 
@@ -1015,7 +1015,7 @@ export const ClientsView: React.FC<Props> = ({
                                     </span>
                                   </div>
                                   <div className="text-[11px] text-stone-500">
-                                    Le <strong>{apt.date}</strong> de <strong>{apt.startTime} à {apt.endTime}</strong> ({apt.durationMinutes} min)
+                                    <strong>{apt.date}</strong> · <strong>{apt.startTime} - {apt.endTime}</strong> ({apt.durationMinutes} min)
                                     {apt.cabin && ` · ${apt.cabin}`}
                                     {apt.price ? ` · ${apt.price} €` : ''}
                                   </div>
@@ -1031,14 +1031,14 @@ export const ClientsView: React.FC<Props> = ({
                                       ? 'bg-blue-100 text-blue-800 border-blue-200'
                                       : 'bg-stone-100 text-stone-500 border-stone-200'
                                   }`}>
-                                    {apt.status === 'confirme' ? 'Confirmé' : apt.status === 'en_attente' ? 'En attente' : apt.status === 'termine' ? 'Effectué' : 'Annulé'}
+                                    {apt.status === 'confirme' ? t.agenda.statusConfirmed : apt.status === 'en_attente' ? t.agenda.statusPending : apt.status === 'termine' ? t.agenda.statusCompleted : t.agenda.statusCancelled}
                                   </span>
 
                                   <button
                                     onClick={() => handleEditAppointment(apt)}
                                     className="px-2 py-1 text-stone-600 hover:text-stone-900 hover:bg-stone-200 rounded-lg text-xs transition-colors cursor-pointer"
                                   >
-                                    Modifier
+                                    {t.common.edit}
                                   </button>
                                 </div>
                               </div>

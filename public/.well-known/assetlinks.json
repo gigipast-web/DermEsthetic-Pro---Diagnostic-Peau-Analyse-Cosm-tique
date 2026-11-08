@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "pro.dermesthetic.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:EB:18:66:47:FD:A2:29:43:8B:1A:1C:CE:F6:C3:0A:94:41:F0:8A:E2:E2:B0:1B:67:86:14:8B:2A:4E"
+      ]
+    }
+  }
+]

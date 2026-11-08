@@ -253,6 +253,7 @@ export async function analyzeProductApi(params: {
   ingredientsList?: string;
   category?: string;
   labelPhotoBase64?: string;
+  language?: string;
 }): Promise<ProductAnalysisResult> {
   // 1. Check verified catalog first if barcode provided
   if (params.barcode) {
@@ -288,6 +289,7 @@ export async function analyzeProductApi(params: {
 
   // 3. Call server Gemini endpoint
   try {
+    const currentLang = params.language || (typeof window !== 'undefined' ? localStorage.getItem('app_language') : null) || 'fr';
     const res = await fetch('/api/gemini/product-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -298,6 +300,7 @@ export async function analyzeProductApi(params: {
         ingredientsList: fetchedInci,
         category: params.category,
         labelPhotoBase64: params.labelPhotoBase64,
+        language: currentLang,
       }),
     });
 
@@ -644,15 +647,17 @@ export async function analyzeSkinApi(params: {
   sensations?: string[];
   practitionerNotes?: string;
   photoBase64?: string;
+  language?: string;
 }): Promise<DiagnosticReport> {
   const reportId = 'diag-' + Date.now();
   const calculatedMetrics = computeSkinMetrics(params);
+  const currentLang = params.language || (typeof window !== 'undefined' ? localStorage.getItem('app_language') : null) || 'fr';
 
   try {
     const res = await fetch('/api/gemini/skin-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ ...params, language: currentLang }),
     });
 
     if (res.ok) {

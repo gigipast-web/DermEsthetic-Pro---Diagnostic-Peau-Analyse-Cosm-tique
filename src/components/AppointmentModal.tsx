@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Sparkles, MapPin, DollarSign, User, FileText, CheckCircle2 } from 'lucide-react';
 import { Appointment, ClientProfile, AppointmentStatus, AppointmentCareType } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const AppointmentModal: React.FC<Props> = ({
   initialDate,
   initialAppointment,
 }) => {
+  const { t } = useLanguage();
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
   const [clientPhone, setClientPhone] = useState<string>('');
@@ -182,10 +184,10 @@ export const AppointmentModal: React.FC<Props> = ({
             </div>
             <div>
               <h3 className="font-serif font-bold text-base text-stone-900">
-                {initialAppointment ? 'Modifier le Rendez-vous' : 'Planifier un Rendez-vous Cabine'}
+                {initialAppointment ? t.agenda.modalTitleEdit : t.agenda.modalTitleNew}
               </h3>
               <p className="text-[11px] text-stone-500">
-                Définition du créneau horaire, de la cabine et du protocole de soin
+                {t.agenda.modalSubtitle}
               </p>
             </div>
           </div>
@@ -203,7 +205,7 @@ export const AppointmentModal: React.FC<Props> = ({
           <div className="space-y-1.5">
             <label className="block font-semibold text-stone-800 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-rose-700" />
-              <span>Cliente Associée *</span>
+              <span>{t.agenda.clientAssociated} *</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <select
@@ -211,7 +213,7 @@ export const AppointmentModal: React.FC<Props> = ({
                 onChange={(e) => handleClientChange(e.target.value)}
                 className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs focus:ring-2 focus:ring-rose-500/20"
               >
-                <option value="">-- Choisir une cliente existante --</option>
+                <option value="">-- {t.agenda.clientAssociated} --</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.fullName} {c.phone ? `(${c.phone})` : ''}
@@ -253,7 +255,7 @@ export const AppointmentModal: React.FC<Props> = ({
               <div>
                 <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-rose-700" />
-                  Date *
+                  {t.agenda.dateLabel} *
                 </label>
                 <input
                   type="date"
@@ -267,7 +269,7 @@ export const AppointmentModal: React.FC<Props> = ({
               <div>
                 <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                   <Clock className="w-3 h-3 text-stone-500" />
-                  Heure de début *
+                  {t.agenda.startTimeLabel} *
                 </label>
                 <input
                   type="time"
@@ -281,7 +283,7 @@ export const AppointmentModal: React.FC<Props> = ({
               <div>
                 <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                   <Clock className="w-3 h-3 text-stone-500" />
-                  Heure de fin
+                  {t.agenda.endTimeLabel}
                 </label>
                 <input
                   type="time"
@@ -295,7 +297,7 @@ export const AppointmentModal: React.FC<Props> = ({
             {/* Quick duration presets */}
             <div>
               <span className="text-[10px] uppercase font-semibold text-stone-500 block mb-1">
-                Durée du créneau : {durationMinutes} min
+                {t.agenda.durationLabel} : {durationMinutes} min
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {[30, 45, 50, 60, 75, 90, 120].map((dur) => (
@@ -320,12 +322,12 @@ export const AppointmentModal: React.FC<Props> = ({
           <div className="space-y-2">
             <label className="block font-semibold text-stone-800 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-700" />
-              <span>Prestation & Protocole Cabine *</span>
+              <span>{t.agenda.serviceLabel} *</span>
             </label>
 
             {/* Quick service suggestions */}
             <div>
-              <span className="text-[10px] text-stone-500 block mb-1">Suggestions rapides de soins :</span>
+              <span className="text-[10px] text-stone-500 block mb-1">Suggestions :</span>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-stone-50 rounded-xl border border-stone-200">
                 {SERVICE_PRESETS.map((preset, idx) => (
                   <button
@@ -345,7 +347,7 @@ export const AppointmentModal: React.FC<Props> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Intitulé précis du soin..."
+                  placeholder="Intitulé du soin..."
                   value={serviceTitle}
                   onChange={(e) => setServiceTitle(e.target.value)}
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs"
@@ -358,12 +360,12 @@ export const AppointmentModal: React.FC<Props> = ({
                   onChange={(e) => setServiceType(e.target.value as AppointmentCareType)}
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs"
                 >
-                  <option value="visage">Soin Visage</option>
-                  <option value="corps">Soin Corps</option>
-                  <option value="diagnostic">Diagnostic Cutané IA</option>
-                  <option value="cure_suivi">Cure & Suivi</option>
-                  <option value="peeling">Peeling & Rénovation</option>
-                  <option value="autre">Autre Prestation</option>
+                  <option value="visage">{t.agenda.careFace}</option>
+                  <option value="corps">{t.agenda.careBody}</option>
+                  <option value="diagnostic">{t.agenda.careDiagnostic}</option>
+                  <option value="cure_suivi">{t.agenda.careCure}</option>
+                  <option value="peeling">{t.agenda.carePeeling}</option>
+                  <option value="autre">{t.agenda.careOther}</option>
                 </select>
               </div>
             </div>
@@ -374,7 +376,7 @@ export const AppointmentModal: React.FC<Props> = ({
             <div>
               <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-stone-500" />
-                Cabine
+                {t.agenda.cabinLabel}
               </label>
               <select
                 value={cabin}
@@ -392,7 +394,7 @@ export const AppointmentModal: React.FC<Props> = ({
             <div>
               <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                 <DollarSign className="w-3 h-3 text-stone-500" />
-                Tarif Prévu (€)
+                {t.agenda.priceLabel} (€)
               </label>
               <input
                 type="number"
@@ -407,17 +409,17 @@ export const AppointmentModal: React.FC<Props> = ({
             <div>
               <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-stone-500" />
-                Statut
+                {t.agenda.statusLabel}
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as AppointmentStatus)}
                 className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold"
               >
-                <option value="confirme">Confirmé</option>
-                <option value="en_attente">En attente</option>
-                <option value="termine">Terminé</option>
-                <option value="annule">Annulé</option>
+                <option value="confirme">{t.agenda.statusConfirmed}</option>
+                <option value="en_attente">{t.agenda.statusPending}</option>
+                <option value="termine">{t.agenda.statusCompleted}</option>
+                <option value="annule">{t.agenda.statusCancelled}</option>
               </select>
             </div>
           </div>
@@ -426,11 +428,11 @@ export const AppointmentModal: React.FC<Props> = ({
           <div>
             <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
               <FileText className="w-3 h-3 text-stone-500" />
-              Notes / Objectifs & Préparations de la séance
+              {t.agenda.notesLabel}
             </label>
             <textarea
               rows={2}
-              placeholder="Ex: Prévoir le masque biocellulose et sérum céramides. Vérifier l'état de sécheresse des pommettes."
+              placeholder="Notes cabine..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs"
@@ -444,14 +446,14 @@ export const AppointmentModal: React.FC<Props> = ({
               onClick={onClose}
               className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-medium transition-colors cursor-pointer"
             >
-              Annuler
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               className="px-5 py-2 bg-rose-950 hover:bg-rose-900 text-white rounded-xl font-semibold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>{initialAppointment ? 'Enregistrer les Modifications' : 'Confirmer le Rendez-vous'}</span>
+              <span>{initialAppointment ? t.agenda.submitEdit : t.agenda.submitNew}</span>
             </button>
           </div>
         </form>

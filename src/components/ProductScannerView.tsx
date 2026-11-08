@@ -24,12 +24,15 @@ import {
   PlusCircle,
   ShoppingBag,
   Sliders,
-  DollarSign
+  DollarSign,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { ProductAnalysisResult, ClientProfile } from '../types';
 import { analyzeProductApi, extractKeyIngredientsWithPurpose } from '../services/apiService';
 import { VERIFIED_PRODUCTS_CATALOG } from '../data/cosmeticsDatabase';
 import { useLanguage } from '../context/LanguageContext';
+import { PLAY_STORE_TESTING_URL, PROMO_IMAGE_PATH } from './GooglePlayPromoModal';
 
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
@@ -67,29 +70,108 @@ export const ProductScannerView: React.FC<Props> = ({
   const [customPrice, setCustomPrice] = useState('25,00 €');
   const [customInci, setCustomInci] = useState('');
 
-  // Camera & ZXing Barcode Reader handling
+  // Camera & Scanning Engine state
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const resultCardRef = useRef<HTMLDivElement | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [scannedFeedback, setScannedFeedback] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const zxingControlsRef = useRef<IScannerControls | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
 
-  // Start Camera with ZXing & native BarcodeDetector fallback
-  const startCamera = async () => {
-    setCameraError(null);
+  // Synchronize stream with video element whenever camera becomes active
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraActive]);
+
+  // Play audio scan beep
+  const playScanBeep = () => {
     try {
-      if (zxingControlsRef.current) {
-        zxingControlsRef.current.stop();
-        zxingControlsRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) {
+      // Audio playback might be restricted before user interaction
+    }
+  };
+
+  // Called immediately when a barcode is recognized
+  const onCodeDetected = (code: string) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    playScanBeep();
+    setScannedFeedback(`Code détecté : ${code} ! Analyse immédiate...`);
+    stopCamera();
+    setBarcodeInput(code);
+    handleAnalyze({ barcode: code });
+  };
+
+  // Switch between front and rear cameras
+  const toggleCameraFacing = () => {
+    const nextMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(nextMode);
+    if (cameraActive) {
+      stopCamera();
+      setTimeout(() => {
+        startCamera(nextMode);
+      }, 150);
+    }
+  };
+
+  // Start Camera with progressive fallback (ideal environment -> ideal user -> simple -> video: true)
+  const startCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
+    setCameraError(null);
+    setScannedFeedback(null);
+    isProcessingRef.current = false;
+
+    try {
+      stopCamera();
+
+      let stream: MediaStream | null = null;
+      // 1. Try high-res with preferred facing mode
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch (e1) {
+        // 2. Try with facing mode only
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: facing } },
+          });
+        } catch (e2) {
+          // 3. Fallback to any camera available (laptop webcam, USB webcam)
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      if (!stream) {
+        throw new Error('Aucun flux vidéo disponible');
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -97,33 +179,64 @@ export const ProductScannerView: React.FC<Props> = ({
       }
       setCameraActive(true);
 
-      // Initialize ZXing Multi-format reader for robust universal barcode detection
+      // Fast hardware-accelerated BarcodeDetector (Chrome Android, Desktop Chrome, Edge, Safari 17+)
+      if ('BarcodeDetector' in window) {
+        try {
+          const barcodeDetector = new (window as any).BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+          });
+
+          scanIntervalRef.current = window.setInterval(async () => {
+            if (isProcessingRef.current || !videoRef.current || videoRef.current.readyState < 2) return;
+            try {
+              const barcodes = await barcodeDetector.detect(videoRef.current);
+              if (barcodes && barcodes.length > 0) {
+                const code = barcodes[0].rawValue;
+                if (code && code.trim().length >= 4) {
+                  onCodeDetected(code.trim());
+                }
+              }
+            } catch (err) {
+              // Frame dropped, keep listening
+            }
+          }, 100);
+        } catch (detectorErr) {
+          console.warn('Native BarcodeDetector init note:', detectorErr);
+        }
+      }
+
+      // Parallel ZXing reader for formats and fallback
       try {
         const reader = new BrowserMultiFormatReader();
         readerRef.current = reader;
         if (videoRef.current) {
-          const controls = await reader.decodeFromVideoElement(videoRef.current, (barcodeResult, err) => {
-            if (barcodeResult) {
+          const controls = await reader.decodeFromVideoElement(videoRef.current, (barcodeResult) => {
+            if (barcodeResult && !isProcessingRef.current) {
               const code = barcodeResult.getText();
-              if (code && code.length >= 5) {
-                stopCamera();
-                handleAnalyze({ barcode: code });
+              if (code && code.trim().length >= 4) {
+                onCodeDetected(code.trim());
               }
             }
           });
           zxingControlsRef.current = controls;
         }
       } catch (zxingErr) {
-        console.warn('ZXing live stream reader init fallback:', zxingErr);
+        console.warn('ZXing live stream reader note:', zxingErr);
       }
     } catch (err: any) {
       console.warn('Camera access failed:', err);
-      setCameraError('Accès caméra non disponible. Vous pouvez saisir le code-barre manuellement ou téléverser une photo.');
+      setCameraError(
+        'Accès caméra non disponible sur cet appareil. Utilisez les raccourcis 1-Clic ci-dessous, la saisie manuelle ou téléversez une photo.'
+      );
       setCameraActive(false);
     }
   };
 
   const stopCamera = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
     if (zxingControlsRef.current) {
       try {
         zxingControlsRef.current.stop();
@@ -142,7 +255,7 @@ export const ProductScannerView: React.FC<Props> = ({
 
   useEffect(() => {
     if (activeTab === 'camera') {
-      startCamera();
+      startCamera(cameraFacingMode);
     } else {
       stopCamera();
     }
@@ -162,13 +275,29 @@ export const ProductScannerView: React.FC<Props> = ({
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-    // Try decoding barcode from the captured snapshot first
+    // 1. Try BarcodeDetector on canvas
+    if ('BarcodeDetector' in window) {
+      try {
+        const barcodeDetector = new (window as any).BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+        });
+        const barcodes = await barcodeDetector.detect(canvas);
+        if (barcodes && barcodes.length > 0) {
+          const code = barcodes[0].rawValue;
+          if (code && code.trim().length >= 4) {
+            onCodeDetected(code.trim());
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 2. Try ZXing on image snapshot
     try {
       const reader = new BrowserMultiFormatReader();
       const codeResult = await reader.decodeFromImageUrl(dataUrl);
       if (codeResult && codeResult.getText()) {
-        stopCamera();
-        handleAnalyze({ barcode: codeResult.getText() });
+        onCodeDetected(codeResult.getText().trim());
         return;
       }
     } catch (e) {
@@ -176,6 +305,7 @@ export const ProductScannerView: React.FC<Props> = ({
     }
 
     stopCamera();
+    setScannedFeedback('Lecture de l’étiquette INCI par Vision IA...');
     handleAnalyze({ labelPhotoBase64: dataUrl });
   };
 
@@ -187,18 +317,39 @@ export const ProductScannerView: React.FC<Props> = ({
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
 
-      // Attempt to decode barcode from uploaded image first
+      // 1. Try BarcodeDetector
+      if ('BarcodeDetector' in window) {
+        try {
+          const img = new Image();
+          img.src = dataUrl;
+          await img.decode();
+          const barcodeDetector = new (window as any).BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+          });
+          const barcodes = await barcodeDetector.detect(img);
+          if (barcodes && barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            if (code && code.trim().length >= 4) {
+              onCodeDetected(code.trim());
+              return;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Attempt to decode barcode from uploaded image with ZXing
       try {
         const codeReader = new BrowserMultiFormatReader();
         const detected = await codeReader.decodeFromImageUrl(dataUrl);
         if (detected && detected.getText()) {
-          handleAnalyze({ barcode: detected.getText() });
+          onCodeDetected(detected.getText().trim());
           return;
         }
       } catch (err) {
         // No barcode detected in image, fallback to Gemini label reading
       }
 
+      setScannedFeedback('Analyse du packaging cosmétique par Vision IA...');
       handleAnalyze({
         labelPhotoBase64: dataUrl,
         productName: productNameInput || file.name.replace(/\.[^/.]+$/, ''),
@@ -228,10 +379,16 @@ export const ProductScannerView: React.FC<Props> = ({
       });
       setResult(res);
       if (params.barcode) setBarcodeInput(params.barcode);
+      // Auto-scroll to results so user never misses the analysis
+      setTimeout(() => {
+        resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setScannedFeedback(null);
+      isProcessingRef.current = false;
     }
   };
 
@@ -388,16 +545,48 @@ export const ProductScannerView: React.FC<Props> = ({
             {/* TAB 1: Live Camera Scanner */}
             {activeTab === 'camera' && (
               <div className="space-y-4">
-                <div className="relative aspect-4/3 bg-stone-950 rounded-xl overflow-hidden flex items-center justify-center border border-stone-800">
+                <div className="relative aspect-4/3 bg-stone-950 rounded-xl overflow-hidden flex items-center justify-center border border-stone-800 shadow-inner">
+                  {/* The video element is ALWAYS mounted, so videoRef.current is NEVER null and receives the stream immediately */}
+                  <video
+                    ref={(el) => {
+                      videoRef.current = el;
+                      if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                        el.srcObject = streamRef.current;
+                        el.play().catch(() => {});
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover transition-opacity duration-200 ${
+                      cameraActive ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+                    }`}
+                  />
+
+                  {/* Realtime Detection Banner */}
+                  {scannedFeedback && (
+                    <div className="absolute top-3 left-3 right-3 bg-emerald-600 text-white text-xs font-semibold py-2.5 px-3 rounded-xl shadow-lg flex items-center justify-between gap-2 z-20 animate-bounce">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 shrink-0 text-white" />
+                        <span>{scannedFeedback}</span>
+                      </div>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    </div>
+                  )}
+
                   {cameraActive ? (
                     <>
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
+                      {/* Flip Camera Button */}
+                      <button
+                        type="button"
+                        onClick={toggleCameraFacing}
+                        className="absolute top-3 right-3 p-2 bg-stone-900/80 hover:bg-stone-900 text-white rounded-lg backdrop-blur-xs text-xs font-medium flex items-center gap-1.5 shadow-md z-10 transition-colors cursor-pointer"
+                        title="Changer de caméra (avant / arrière)"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span className="text-[10px] hidden sm:inline">{cameraFacingMode === 'environment' ? 'Arrière' : 'Avant'}</span>
+                      </button>
+
                       {/* Viewfinder Target Frame */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
                         <div className="w-64 h-36 border-2 border-rose-400/90 rounded-xl relative shadow-lg">
@@ -409,40 +598,145 @@ export const ProductScannerView: React.FC<Props> = ({
                           <div className="w-full h-0.5 bg-rose-500 absolute top-1/2 -translate-y-1/2 animate-pulse shadow-sm"></div>
                         </div>
                       </div>
-                      <div className="absolute bottom-3 left-0 right-0 text-center text-xs text-white/90 bg-stone-950/70 py-1 px-3 mx-4 rounded-lg backdrop-blur-xs">
-                        Pointez vers le code-barre du soin visage ou corps
+                      <div className="absolute bottom-3 left-0 right-0 text-center text-xs text-white/90 bg-stone-950/70 py-1.5 px-3 mx-4 rounded-lg backdrop-blur-xs">
+                        Pointez vers le code-barre (EAN-13 / UPC) d’un produit cosmétique
                       </div>
                     </>
                   ) : (
-                    <div className="p-6 text-center text-stone-400 space-y-3">
+                    <div className="p-6 text-center text-stone-400 space-y-3 z-10">
                       <Camera className="w-10 h-10 mx-auto text-stone-500 opacity-60" />
-                      <p className="text-xs">{cameraError || 'Activation du flux vidéo haute définition...'}</p>
+                      <p className="text-xs text-stone-300">{cameraError || 'Flux vidéo en attente d’activation...'}</p>
                       <button
-                        onClick={startCamera}
-                        className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs rounded-lg transition-colors"
+                        onClick={() => startCamera(cameraFacingMode)}
+                        className="px-4 py-2 bg-rose-900 hover:bg-rose-800 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer shadow-xs"
                       >
-                        Autoriser & Allumer la Caméra
+                        Allumer la Caméra
                       </button>
                     </div>
                   )}
                 </div>
 
+                {/* Camera Actions */}
                 <div className="flex gap-2">
                   <button
                     onClick={captureFrame}
                     disabled={!cameraActive || loading}
-                    className="flex-1 py-2.5 bg-rose-900 hover:bg-rose-800 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs"
+                    className="flex-1 py-2.5 bg-rose-900 hover:bg-rose-800 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
                     Photographier & Décrypter
                   </button>
                   <button
-                    onClick={cameraActive ? stopCamera : startCamera}
-                    className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors"
-                    title={cameraActive ? 'Mettre en pause' : 'Redémarrer'}
+                    onClick={cameraActive ? stopCamera : () => startCamera(cameraFacingMode)}
+                    className="p-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl transition-colors cursor-pointer"
+                    title={cameraActive ? 'Mettre en pause' : 'Redémarrer la caméra'}
                   >
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                   </button>
+                </div>
+
+                {/* Instant Scanned Product Card (Directly visible on screen without needing to scroll) */}
+                {result && (
+                  <div className="bg-stone-900 text-white rounded-2xl p-4 space-y-3 shadow-lg border border-stone-800 animate-fade-in">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-rose-400 block">
+                          Produit Identifié à l'Écran
+                        </span>
+                        <h4 className="font-serif font-bold text-white text-base truncate">
+                          {result.brand ? `${result.brand} - ` : ''}{result.productName}
+                        </h4>
+                        <p className="text-[11px] text-stone-400">
+                          {result.barcode ? `EAN : ${result.barcode}` : result.category}
+                        </p>
+                      </div>
+                      <div
+                        className={`px-3 py-1.5 rounded-xl font-bold text-center shrink-0 ${
+                          result.safetyScore >= 80
+                            ? 'bg-emerald-600 text-white'
+                            : result.safetyScore >= 60
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        <div className="text-lg leading-none font-bold">{result.safetyScore}</div>
+                        <div className="text-[9px] uppercase tracking-wider opacity-85">/100</div>
+                      </div>
+                    </div>
+
+                    {result.isControversialOrDangerous ? (
+                      <div className="p-2.5 bg-rose-950/80 border border-rose-600/50 rounded-xl text-rose-200 text-xs flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span className="font-semibold text-[11px] leading-tight">
+                          ⚠️ ALERTE : Ingrédients controversés ou perturbateurs endocriniens détectés.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-emerald-950/80 border border-emerald-600/50 rounded-xl text-emerald-200 text-xs flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="font-semibold text-[11px] leading-tight">
+                          ✅ Formulation sûre & saine sans substances toxiques critiques.
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      >
+                        <span>Voir la fiche toxicologique complète</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startCamera(cameraFacingMode)}
+                        className="py-2 px-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Re-scanner</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1-Click Quick Barcodes on Camera Tab */}
+                <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-stone-700 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-rose-600" />
+                      Test 1-Clic Sans Produit Sous la Main :
+                    </span>
+                    <span className="text-[10px] text-stone-400">Codes certifiés</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '💧 Bioderma H2O', code: '3401345934538', type: 'clean' },
+                      { label: '🧴 Nivea (Danger)', code: '4005808111220', type: 'danger' },
+                      { label: '🌿 Lipikar AP+M', code: '3337875597203', type: 'clean' },
+                      { label: '🧼 CeraVe Nettoyant', code: '3337872412486', type: 'clean' },
+                      { label: '🍇 Caudalie Minceur', code: '3525722028889', type: 'clean' },
+                    ].map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setBarcodeInput(item.code);
+                          handleAnalyze({ barcode: item.code });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all flex items-center gap-1 cursor-pointer ${
+                          item.type === 'danger'
+                            ? 'bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -465,13 +759,91 @@ export const ProductScannerView: React.FC<Props> = ({
                     <button
                       onClick={() => handleAnalyze({ barcode: barcodeInput })}
                       disabled={!barcodeInput || loading}
-                      className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                      className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                       Analyser
                     </button>
                   </div>
                 </div>
+
+                {/* 1-Click Quick Barcodes on Barcode Tab */}
+                <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-stone-700 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-rose-600" />
+                      Tests Rapides 1-Clic :
+                    </span>
+                    <span className="text-[10px] text-stone-400">Cliquez pour tester</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: '💧 Bioderma H2O', code: '3401345934538', type: 'clean' },
+                      { label: '🧴 Nivea (Danger)', code: '4005808111220', type: 'danger' },
+                      { label: '🌿 Lipikar AP+M', code: '3337875597203', type: 'clean' },
+                      { label: '🧼 CeraVe Nettoyant', code: '3337872412486', type: 'clean' },
+                      { label: '🍇 Caudalie Minceur', code: '3525722028889', type: 'clean' },
+                    ].map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setBarcodeInput(item.code);
+                          handleAnalyze({ barcode: item.code });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all flex items-center gap-1 cursor-pointer ${
+                          item.type === 'danger'
+                            ? 'bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Instant Result Preview Card for Barcode Tab */}
+                {result && (
+                  <div className="bg-stone-900 text-white rounded-2xl p-3.5 space-y-2.5 shadow-md border border-stone-800 animate-fade-in">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-rose-400 block">
+                          Résultat Décrypté
+                        </span>
+                        <h4 className="font-serif font-bold text-white text-sm truncate">
+                          {result.brand ? `${result.brand} - ` : ''}{result.productName}
+                        </h4>
+                        <p className="text-[10px] text-stone-400">
+                          {result.barcode ? `EAN : ${result.barcode}` : result.category}
+                        </p>
+                      </div>
+                      <div
+                        className={`px-2.5 py-1 rounded-lg font-bold text-center shrink-0 ${
+                          result.safetyScore >= 80
+                            ? 'bg-emerald-600 text-white'
+                            : result.safetyScore >= 60
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        <div className="text-base leading-none font-bold">{result.safetyScore}</div>
+                        <div className="text-[8px] uppercase tracking-wider opacity-85">/100</div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="w-full py-2 px-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <span>Consulter la fiche toxicologique complète</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-600 mb-2">
@@ -484,8 +856,11 @@ export const ProductScannerView: React.FC<Props> = ({
                         onClick={() => {
                           setBarcodeInput(prod.barcode || '');
                           setResult(prod);
+                          setTimeout(() => {
+                            resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 100);
                         }}
-                        className={`w-full text-left p-2.5 rounded-xl text-xs border transition-all flex items-center justify-between ${
+                        className={`w-full text-left p-2.5 rounded-xl text-xs border transition-all flex items-center justify-between cursor-pointer ${
                           result?.barcode === prod.barcode
                             ? 'bg-rose-50/70 border-rose-300 text-rose-950 font-medium'
                             : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
@@ -559,6 +934,9 @@ export const ProductScannerView: React.FC<Props> = ({
                       onClick={() => {
                         setBarcodeInput(prod.barcode || '');
                         setResult(prod);
+                        setTimeout(() => {
+                          resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
                       }}
                       className={`p-3 rounded-xl border cursor-pointer text-xs transition-all space-y-1 ${
                         result?.barcode === prod.barcode
@@ -721,7 +1099,7 @@ export const ProductScannerView: React.FC<Props> = ({
         </div>
 
         {/* Right Column: In-Depth Product Toxicology & Pro Verdict */}
-        <div className="lg:col-span-7">
+        <div ref={resultCardRef} className="lg:col-span-7">
           {loading ? (
             <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-4">
               <RefreshCw className="w-8 h-8 text-rose-600 animate-spin mx-auto" />
@@ -1198,6 +1576,93 @@ export const ProductScannerView: React.FC<Props> = ({
           )}
         </div>
       </div>
+
+      {/* Official Google Play Mobile App Promotional Poster Showcase */}
+      <section className="bg-gradient-to-br from-stone-900 via-rose-950 to-stone-900 text-white rounded-3xl p-6 sm:p-8 border border-rose-900/50 shadow-xl overflow-hidden mt-8">
+        <div className="flex flex-col lg:flex-row items-center gap-8">
+          {/* Poster image wrapped with the requested hyperlink */}
+          <div className="w-full lg:w-96 shrink-0 text-center">
+            <a
+              href={PLAY_STORE_TESTING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Cliquez sur l'affiche pour rejoindre le programme de test Google Play"
+              className="group block relative rounded-2xl overflow-hidden border-2 border-rose-400/50 shadow-2xl transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
+            >
+              <img
+                src={PROMO_IMAGE_PATH}
+                alt="Affiche promotionnelle Dermesthetic - Disponible sur Google Play"
+                className="w-full h-auto object-cover"
+              />
+              <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 text-white backdrop-blur-[2px]">
+                <div className="px-4 py-2 rounded-xl bg-white text-stone-900 font-bold text-xs flex items-center gap-2 shadow-xl">
+                  <ExternalLink className="w-4 h-4 text-rose-800" />
+                  <span>Cliquer pour Ouvrir Google Play</span>
+                </div>
+                <span className="text-[11px] text-rose-200 font-mono">
+                  play.google.com/apps/testing/pro.dermesthetic.app
+                </span>
+              </div>
+            </a>
+            <p className="text-[11px] text-rose-200/70 mt-2 font-medium">
+              👆 Cliquez directement sur l'affiche pour ouvrir Google Play
+            </p>
+          </div>
+
+          {/* Details & Explanation */}
+          <div className="space-y-4 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Phase de Testeur Google Play Active</span>
+            </div>
+
+            <h3 className="font-serif font-bold text-2xl sm:text-3xl text-white leading-tight">
+              Affiche Promotionnelle Officielle & Version Mobile Android
+            </h3>
+
+            <p className="text-stone-300 text-sm leading-relaxed">
+              Testez notre application mobile Dermesthetic en avant-première ! L'affiche ci-contre permet à vos clientes et praticiennes de rejoindre la phase de test sur Google Play en 1 clic.
+            </p>
+
+            <div className="p-3.5 bg-white/10 rounded-2xl border border-white/15 space-y-1">
+              <span className="text-[10px] text-rose-300 font-bold uppercase tracking-wider block">
+                Lien hypertexte associé à cette image :
+              </span>
+              <a
+                href={PLAY_STORE_TESTING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs sm:text-sm font-mono text-white underline hover:text-rose-200 break-all block"
+              >
+                {PLAY_STORE_TESTING_URL}
+              </a>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <a
+                href={PLAY_STORE_TESTING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Tester sur Google Play</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+
+              <a
+                href={PROMO_IMAGE_PATH}
+                download="Affiche-Dermesthetic-GooglePlay.png"
+                className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center gap-2 border border-white/20 transition-colors cursor-pointer"
+                title="Télécharger l'affiche au format PNG (1254x1254)"
+              >
+                <Download className="w-4 h-4 text-rose-300" />
+                <span>Télécharger l'Affiche HD</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Modal: Add Custom Product to Salon Catalog */}
       {showAddCustomModal && (

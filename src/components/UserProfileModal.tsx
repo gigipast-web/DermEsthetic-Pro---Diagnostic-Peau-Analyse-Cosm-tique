@@ -13,6 +13,11 @@ import {
   Download,
   ShieldCheck,
   Globe,
+  Crown,
+  CreditCard,
+  Sparkles,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import { PractitionerUser, ClientProfile, DiagnosticReport } from '../types';
 import {
@@ -22,6 +27,7 @@ import {
 } from '../services/authService';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
+import { PLAY_STORE_TESTING_URL, PROMO_IMAGE_PATH } from './GooglePlayPromoModal';
 
 interface Props {
   currentUser: PractitionerUser;
@@ -32,6 +38,7 @@ interface Props {
   onLogout: () => void;
   onSwitchAccount: (user: PractitionerUser) => void;
   onOpenNewAccountModal: () => void;
+  onOpenSubscriptionModal?: () => void;
 }
 
 export const UserProfileModal: React.FC<Props> = ({
@@ -43,9 +50,10 @@ export const UserProfileModal: React.FC<Props> = ({
   onLogout,
   onSwitchAccount,
   onOpenNewAccountModal,
+  onOpenSubscriptionModal,
 }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'backup'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'backup' | 'subscription' | 'mobile'>('profile');
   const [fullName, setFullName] = useState(currentUser.fullName);
   const [instituteName, setInstituteName] = useState(currentUser.instituteName);
   const [role, setRole] = useState(currentUser.role);
@@ -158,6 +166,28 @@ export const UserProfileModal: React.FC<Props> = ({
             }`}
           >
             {t.profile.tabBackup}
+          </button>
+          <button
+            onClick={() => setActiveTab('subscription')}
+            className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'subscription'
+                ? 'border-rose-900 text-rose-950'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5 text-rose-800" />
+            <span>{t.profile.tabSubscription}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('mobile')}
+            className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'mobile'
+                ? 'border-rose-900 text-rose-950'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5 text-rose-800" />
+            <span>App Google Play</span>
           </button>
         </div>
 
@@ -414,6 +444,165 @@ export const UserProfileModal: React.FC<Props> = ({
                     <span>{t.profile.exportJson}</span>
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'subscription' && (
+            <div className="space-y-4 text-xs">
+              {/* Subscription Summary */}
+              <div className="p-5 bg-gradient-to-br from-rose-50/70 via-stone-50 to-stone-100 rounded-2xl border border-rose-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-rose-800 tracking-wider block">
+                      Abonnement Actif Cabine
+                    </span>
+                    <h3 className="font-serif font-bold text-lg text-stone-900">
+                      {currentUser.subscription?.planName || 'Forfait Pro Esthéticienne'}
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xl font-serif font-bold text-stone-900 block">
+                      {currentUser.subscription?.priceMonthly || 29} € <span className="text-xs font-sans text-stone-500 font-normal">/ mois</span>
+                    </span>
+                    <span className="text-[10px] text-stone-400">Sans engagement</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-stone-200/60 text-[11px]">
+                  <div className="p-2.5 bg-white rounded-xl border border-stone-200 shadow-2xs">
+                    <span className="text-stone-400 block text-[10px]">Renouvellement automatique :</span>
+                    <strong className="text-stone-800 font-bold">
+                      {currentUser.subscription?.renewsAt || 'Le 25 du mois'}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-stone-200 shadow-2xs">
+                    <span className="text-stone-400 block text-[10px]">Règlement mensuel :</span>
+                    <strong className="text-stone-800 font-bold flex items-center gap-1">
+                      <CreditCard className="w-3 h-3 text-stone-600" />
+                      Visa •••• {currentUser.subscription?.paymentMethodLast4 || '4242'}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenSubscriptionModal?.();
+                    }}
+                    className="w-full py-2.5 px-4 bg-rose-950 hover:bg-rose-900 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-rose-300" />
+                    <span>Gérer mon abonnement & Voir les Forfaits</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Invoices Quick List */}
+              <div className="border border-stone-200 rounded-2xl p-4 space-y-2.5 bg-white">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-800">Dernières factures mensuelles :</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenSubscriptionModal?.();
+                    }}
+                    className="text-rose-900 hover:text-rose-950 font-semibold underline text-[11px] cursor-pointer"
+                  >
+                    Toutes les factures
+                  </button>
+                </div>
+
+                {currentUser.subscription?.invoices && currentUser.subscription.invoices.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {currentUser.subscription.invoices.slice(0, 2).map((inv) => (
+                      <div
+                        key={inv.id}
+                        className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-[11px]"
+                      >
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-stone-900 font-mono">{inv.invoiceNumber}</span>
+                          <span className="text-stone-400 block text-[10px]">{inv.date} · {inv.planName}</span>
+                        </div>
+                        <div className="text-right">
+                          <strong className="text-stone-900 font-bold block">{inv.amount.toFixed(2)} € TTC</strong>
+                          <span className="text-[9px] text-emerald-700 font-semibold">Payée</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-stone-400">Aucune facture enregistrée pour le moment.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: Application Mobile & Google Play Testing */}
+          {activeTab === 'mobile' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Application Android & Programme Google Play
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Cliquez sur l'affiche officielle pour rejoindre la phase de test sur le Google Play Store.
+                  </p>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 uppercase">
+                  Bêta Active
+                </span>
+              </div>
+
+              {/* Promotional Poster Image Wrapped in Link */}
+              <div className="relative group rounded-2xl overflow-hidden border border-stone-200 shadow-md hover:shadow-xl transition-all duration-300 bg-stone-100">
+                <a
+                  href={PLAY_STORE_TESTING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block relative cursor-pointer"
+                  title="Cliquer pour accéder au programme de test sur Google Play"
+                >
+                  <img
+                    src={PROMO_IMAGE_PATH}
+                    alt="Affiche promotionnelle Dermesthetic - Disponible sur Google Play"
+                    className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+                  />
+                  <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 text-white p-4 backdrop-blur-[2px]">
+                    <div className="px-4 py-2 rounded-xl bg-white text-stone-900 font-bold text-xs flex items-center gap-2 shadow-xl">
+                      <ExternalLink className="w-4 h-4 text-rose-800" />
+                      <span>Ouvrir Google Play (Phase de Test)</span>
+                    </div>
+                    <span className="text-[11px] text-rose-200 font-medium">
+                      pro.dermesthetic.app
+                    </span>
+                  </div>
+                </a>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <a
+                  href={PLAY_STORE_TESTING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 px-4 bg-rose-950 hover:bg-rose-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <Smartphone className="w-4 h-4 text-rose-300" />
+                  <span>Rejoindre le Test Google Play</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href={PROMO_IMAGE_PATH}
+                  download="Affiche-Dermesthetic-GooglePlay.png"
+                  className="py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-stone-200 transition-colors"
+                >
+                  <Download className="w-4 h-4 text-stone-600" />
+                  <span>Télécharger l'Affiche HD</span>
+                </a>
               </div>
             </div>
           )}
