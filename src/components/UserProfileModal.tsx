@@ -16,8 +16,6 @@ import {
   Crown,
   CreditCard,
   Sparkles,
-  Smartphone,
-  ExternalLink,
 } from 'lucide-react';
 import { PractitionerUser, ClientProfile, DiagnosticReport } from '../types';
 import {
@@ -27,7 +25,6 @@ import {
 } from '../services/authService';
 import { LanguageSelector } from './LanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
-import { PLAY_STORE_TESTING_URL, PROMO_IMAGE_PATH } from './GooglePlayPromoModal';
 
 interface Props {
   currentUser: PractitionerUser;
@@ -53,7 +50,7 @@ export const UserProfileModal: React.FC<Props> = ({
   onOpenSubscriptionModal,
 }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'backup' | 'subscription' | 'mobile'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'backup' | 'subscription'>('profile');
   const [fullName, setFullName] = useState(currentUser.fullName);
   const [instituteName, setInstituteName] = useState(currentUser.instituteName);
   const [role, setRole] = useState(currentUser.role);
@@ -177,17 +174,6 @@ export const UserProfileModal: React.FC<Props> = ({
           >
             <Crown className="w-3.5 h-3.5 text-rose-800" />
             <span>{t.profile.tabSubscription}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('mobile')}
-            className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'mobile'
-                ? 'border-rose-900 text-rose-950'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5 text-rose-800" />
-            <span>App Google Play</span>
           </button>
         </div>
 
@@ -537,72 +523,6 @@ export const UserProfileModal: React.FC<Props> = ({
                 ) : (
                   <p className="text-[11px] text-stone-400">Aucune facture enregistrée pour le moment.</p>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: Application Mobile & Google Play Testing */}
-          {activeTab === 'mobile' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
-                <div>
-                  <h3 className="font-serif font-bold text-base text-stone-900">
-                    Application Android & Programme Google Play
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Cliquez sur l'affiche officielle pour rejoindre la phase de test sur le Google Play Store.
-                  </p>
-                </div>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 uppercase">
-                  Bêta Active
-                </span>
-              </div>
-
-              {/* Promotional Poster Image Wrapped in Link */}
-              <div className="relative group rounded-2xl overflow-hidden border border-stone-200 shadow-md hover:shadow-xl transition-all duration-300 bg-stone-100">
-                <a
-                  href={PLAY_STORE_TESTING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block relative cursor-pointer"
-                  title="Cliquer pour accéder au programme de test sur Google Play"
-                >
-                  <img
-                    src={PROMO_IMAGE_PATH}
-                    alt="Affiche promotionnelle Dermesthetic - Disponible sur Google Play"
-                    className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-                  />
-                  <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 text-white p-4 backdrop-blur-[2px]">
-                    <div className="px-4 py-2 rounded-xl bg-white text-stone-900 font-bold text-xs flex items-center gap-2 shadow-xl">
-                      <ExternalLink className="w-4 h-4 text-rose-800" />
-                      <span>Ouvrir Google Play (Phase de Test)</span>
-                    </div>
-                    <span className="text-[11px] text-rose-200 font-medium">
-                      pro.dermesthetic.app
-                    </span>
-                  </div>
-                </a>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                <a
-                  href={PLAY_STORE_TESTING_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-2.5 px-4 bg-rose-950 hover:bg-rose-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
-                >
-                  <Smartphone className="w-4 h-4 text-rose-300" />
-                  <span>Rejoindre le Test Google Play</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <a
-                  href={PROMO_IMAGE_PATH}
-                  download="Affiche-Dermesthetic-GooglePlay.png"
-                  className="py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-stone-200 transition-colors"
-                >
-                  <Download className="w-4 h-4 text-stone-600" />
-                  <span>Télécharger l'Affiche HD</span>
-                </a>
               </div>
             </div>
           )}

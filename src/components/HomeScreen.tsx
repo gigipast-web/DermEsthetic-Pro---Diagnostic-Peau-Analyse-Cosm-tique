@@ -11,7 +11,6 @@ import {
   Fingerprint,
   Layers,
   HeartHandshake,
-  Smartphone,
   Eye,
   Sliders,
 } from 'lucide-react';
@@ -20,13 +19,11 @@ import { MainTab } from './Navbar';
 interface Props {
   onStartAnalysis: () => void;
   onNavigateTab: (tab: MainTab) => void;
-  onOpenGooglePlayModal?: () => void;
 }
 
 export const HomeScreen: React.FC<Props> = ({
   onStartAnalysis,
   onNavigateTab,
-  onOpenGooglePlayModal,
 }) => {
   const [activeZone, setActiveZone] = useState<'hydration' | 'elasticity' | 'barrier' | 'glow'>('hydration');
 
@@ -304,43 +301,6 @@ export const HomeScreen: React.FC<Props> = ({
           </div>
         </div>
       </section>
-
-      {/* =========================================================================
-          BANNER INVITATION : TEST GOOGLE PLAY (ANDROID)
-         ========================================================================= */}
-      {onOpenGooglePlayModal && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="bg-gradient-to-r from-stone-900 via-rose-950 to-stone-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl border border-rose-900/30">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-rose-300 shrink-0 shadow-inner">
-                <Smartphone className="w-7 h-7" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-serif font-bold text-lg sm:text-xl text-white">
-                    Disponible en avant-première sur Google Play
-                  </h3>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-200 border border-rose-400/30">
-                    Bêta Test
-                  </span>
-                </div>
-                <p className="text-xs text-stone-300 max-w-xl">
-                  Rejoignez notre programme de test officiel sur Android, installez l'application cabine sur votre tablette ou smartphone et participez aux prochaines évolutions.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onOpenGooglePlayModal}
-              className="px-5 py-3 rounded-2xl bg-white hover:bg-rose-50 text-rose-950 font-bold text-xs shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-2"
-            >
-              <Smartphone className="w-4 h-4 text-rose-800" />
-              <span>Accéder au programme Google Play</span>
-            </button>
-          </div>
-        </section>
-      )}
     </div>
   );
 };

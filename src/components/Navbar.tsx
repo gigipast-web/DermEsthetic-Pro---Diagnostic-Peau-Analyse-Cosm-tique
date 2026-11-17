@@ -8,7 +8,6 @@ import {
   Sparkles,
   LogIn,
   Crown,
-  Smartphone,
 } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 import { LanguageSelector } from './LanguageSelector';
@@ -26,7 +25,6 @@ interface Props {
   onOpenProfile?: () => void;
   onOpenAuth?: () => void;
   onOpenSubscription?: () => void;
-  onOpenGooglePlayModal?: () => void;
 }
 
 export const Navbar: React.FC<Props> = ({
@@ -36,7 +34,6 @@ export const Navbar: React.FC<Props> = ({
   onOpenProfile,
   onOpenAuth,
   onOpenSubscription,
-  onOpenGooglePlayModal,
 }) => {
   const { t } = useLanguage();
 
@@ -137,19 +134,6 @@ export const Navbar: React.FC<Props> = ({
             <div className="hidden sm:block">
               <PWAInstallButton />
             </div>
-
-            {/* Google Play Beta Test Button */}
-            {onOpenGooglePlayModal && (
-              <button
-                onClick={onOpenGooglePlayModal}
-                title="Tester l'application sur Google Play (Android)"
-                className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold rounded-xl border border-stone-200 bg-stone-50 hover:bg-rose-50/80 hover:border-rose-300 text-stone-700 hover:text-rose-950 transition-all cursor-pointer shadow-2xs shrink-0"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-rose-800" />
-                <span className="hidden xl:inline">Google Play Bêta</span>
-                <span className="xl:hidden">Android</span>
-              </button>
-            )}
 
             {/* Monthly Subscription / Plans Button ("Onglet 29€") */}
             <button

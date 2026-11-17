@@ -7,13 +7,11 @@ import { ClientsView } from './components/ClientsView';
 import { HomeScreen } from './components/HomeScreen';
 import { ClientProfile, DiagnosticReport, ProductAnalysisResult, PractitionerUser, PurchasedProductRecord, Appointment } from './types';
 import { SAMPLE_CLIENTS, VERIFIED_PRODUCTS_CATALOG, SAMPLE_APPOINTMENTS } from './data/cosmeticsDatabase';
-import { Award, Smartphone } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { getCurrentUser, logoutUser } from './services/authService';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
-import { GooglePlayPromoModal } from './components/GooglePlayPromoModal';
-import { GooglePlayBanner } from './components/GooglePlayBanner';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { LanguageSelector } from './components/LanguageSelector';
 
@@ -259,7 +257,6 @@ function AppContent() {
   const [authCanDismiss, setAuthCanDismiss] = useState<boolean>(() => !!getCurrentUser());
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState<boolean>(false);
-  const [showGooglePlayModal, setShowGooglePlayModal] = useState<boolean>(false);
 
   // Client states with local storage persistence
   const [clients, setClients] = useState<ClientProfile[]>(() => {
@@ -479,9 +476,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col font-sans text-stone-900 selection:bg-rose-200 selection:text-rose-950">
-      {/* Google Play Beta Announcement Banner */}
-      <GooglePlayBanner onOpenModal={() => setShowGooglePlayModal(true)} />
-
       {/* Top Professional Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -494,7 +488,6 @@ function AppContent() {
           setShowAuthModal(true);
         }}
         onOpenSubscription={() => setShowSubscriptionModal(true)}
-        onOpenGooglePlayModal={() => setShowGooglePlayModal(true)}
       />
 
       {/* Main Content View Switcher */}
@@ -503,7 +496,6 @@ function AppContent() {
           <HomeScreen
             onStartAnalysis={() => setActiveTab('diagnostic')}
             onNavigateTab={(tab) => setActiveTab(tab)}
-            onOpenGooglePlayModal={() => setShowGooglePlayModal(true)}
           />
         )}
 
@@ -572,34 +564,6 @@ function AppContent() {
               {t.footer.privacy}
             </a>
             <span>·</span>
-            <a
-              href="/telecharger-icones"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-800 hover:text-amber-950 underline font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200"
-            >
-              {t.footer.playStoreIcons}
-            </a>
-            <span>·</span>
-            <button
-              onClick={() => setShowGooglePlayModal(true)}
-              className="text-rose-900 hover:text-rose-950 font-bold flex items-center gap-1 cursor-pointer bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-200 transition-colors"
-              title="Voir l'affiche promotionnelle Dermesthetic et rejoindre la phase de test Google Play"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-rose-700" />
-              <span>📱 Affiche Google Play</span>
-            </button>
-            <span>·</span>
-            <a
-              href="https://play.google.com/apps/testing/pro.dermesthetic.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-stone-600 hover:text-stone-900 underline font-medium"
-              title="Accéder directement à la page de test sur Google Play"
-            >
-              Tester l'application Android
-            </a>
-            <span>·</span>
             {/* Quick Language Selector in Footer */}
             <LanguageSelector variant="modal" showLabel={true} />
           </div>
@@ -639,12 +603,6 @@ function AppContent() {
           onUserUpdated={handleUserUpdated}
         />
       )}
-
-      {/* Google Play Beta Promotional Poster Modal */}
-      <GooglePlayPromoModal
-        isOpen={showGooglePlayModal}
-        onClose={() => setShowGooglePlayModal(false)}
-      />
     </div>
   );
 }

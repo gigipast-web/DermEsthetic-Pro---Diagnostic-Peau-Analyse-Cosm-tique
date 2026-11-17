@@ -12,7 +12,6 @@ import {
   Search,
   FileText,
   RefreshCw,
-  ExternalLink,
   ChevronRight,
   Info,
   Layers,
@@ -25,14 +24,11 @@ import {
   ShoppingBag,
   Sliders,
   DollarSign,
-  Smartphone,
-  Download,
 } from 'lucide-react';
 import { ProductAnalysisResult, ClientProfile } from '../types';
 import { analyzeProductApi, extractKeyIngredientsWithPurpose } from '../services/apiService';
 import { VERIFIED_PRODUCTS_CATALOG } from '../data/cosmeticsDatabase';
 import { useLanguage } from '../context/LanguageContext';
-import { PLAY_STORE_TESTING_URL, PROMO_IMAGE_PATH } from './GooglePlayPromoModal';
 
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
@@ -1576,93 +1572,6 @@ export const ProductScannerView: React.FC<Props> = ({
           )}
         </div>
       </div>
-
-      {/* Official Google Play Mobile App Promotional Poster Showcase */}
-      <section className="bg-gradient-to-br from-stone-900 via-rose-950 to-stone-900 text-white rounded-3xl p-6 sm:p-8 border border-rose-900/50 shadow-xl overflow-hidden mt-8">
-        <div className="flex flex-col lg:flex-row items-center gap-8">
-          {/* Poster image wrapped with the requested hyperlink */}
-          <div className="w-full lg:w-96 shrink-0 text-center">
-            <a
-              href={PLAY_STORE_TESTING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Cliquez sur l'affiche pour rejoindre le programme de test Google Play"
-              className="group block relative rounded-2xl overflow-hidden border-2 border-rose-400/50 shadow-2xl transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
-            >
-              <img
-                src={PROMO_IMAGE_PATH}
-                alt="Affiche promotionnelle Dermesthetic - Disponible sur Google Play"
-                className="w-full h-auto object-cover"
-              />
-              <div className="absolute inset-0 bg-stone-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 text-white backdrop-blur-[2px]">
-                <div className="px-4 py-2 rounded-xl bg-white text-stone-900 font-bold text-xs flex items-center gap-2 shadow-xl">
-                  <ExternalLink className="w-4 h-4 text-rose-800" />
-                  <span>Cliquer pour Ouvrir Google Play</span>
-                </div>
-                <span className="text-[11px] text-rose-200 font-mono">
-                  play.google.com/apps/testing/pro.dermesthetic.app
-                </span>
-              </div>
-            </a>
-            <p className="text-[11px] text-rose-200/70 mt-2 font-medium">
-              👆 Cliquez directement sur l'affiche pour ouvrir Google Play
-            </p>
-          </div>
-
-          {/* Details & Explanation */}
-          <div className="space-y-4 flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Phase de Testeur Google Play Active</span>
-            </div>
-
-            <h3 className="font-serif font-bold text-2xl sm:text-3xl text-white leading-tight">
-              Affiche Promotionnelle Officielle & Version Mobile Android
-            </h3>
-
-            <p className="text-stone-300 text-sm leading-relaxed">
-              Testez notre application mobile Dermesthetic en avant-première ! L'affiche ci-contre permet à vos clientes et praticiennes de rejoindre la phase de test sur Google Play en 1 clic.
-            </p>
-
-            <div className="p-3.5 bg-white/10 rounded-2xl border border-white/15 space-y-1">
-              <span className="text-[10px] text-rose-300 font-bold uppercase tracking-wider block">
-                Lien hypertexte associé à cette image :
-              </span>
-              <a
-                href={PLAY_STORE_TESTING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs sm:text-sm font-mono text-white underline hover:text-rose-200 break-all block"
-              >
-                {PLAY_STORE_TESTING_URL}
-              </a>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a
-                href={PLAY_STORE_TESTING_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span>Tester sur Google Play</span>
-                <ExternalLink className="w-4 h-4" />
-              </a>
-
-              <a
-                href={PROMO_IMAGE_PATH}
-                download="Affiche-Dermesthetic-GooglePlay.png"
-                className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center gap-2 border border-white/20 transition-colors cursor-pointer"
-                title="Télécharger l'affiche au format PNG (1254x1254)"
-              >
-                <Download className="w-4 h-4 text-rose-300" />
-                <span>Télécharger l'Affiche HD</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Modal: Add Custom Product to Salon Catalog */}
       {showAddCustomModal && (
