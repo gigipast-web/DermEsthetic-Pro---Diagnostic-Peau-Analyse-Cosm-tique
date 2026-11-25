@@ -289,7 +289,7 @@ export async function analyzeProductApi(params: {
 
   // 3. Call server Gemini endpoint
   try {
-    const currentLang = params.language || (typeof window !== 'undefined' ? localStorage.getItem('app_language') : null) || 'fr';
+    const currentLang = params.language || (typeof window !== 'undefined' ? (localStorage.getItem('dermesthetic_language_v1') || localStorage.getItem('app_language')) : null) || 'fr';
     const res = await fetch('/api/gemini/product-analysis', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -651,7 +651,7 @@ export async function analyzeSkinApi(params: {
 }): Promise<DiagnosticReport> {
   const reportId = 'diag-' + Date.now();
   const calculatedMetrics = computeSkinMetrics(params);
-  const currentLang = params.language || (typeof window !== 'undefined' ? localStorage.getItem('app_language') : null) || 'fr';
+  const currentLang = params.language || (typeof window !== 'undefined' ? (localStorage.getItem('dermesthetic_language_v1') || localStorage.getItem('app_language')) : null) || 'fr';
 
   try {
     const res = await fetch('/api/gemini/skin-analysis', {

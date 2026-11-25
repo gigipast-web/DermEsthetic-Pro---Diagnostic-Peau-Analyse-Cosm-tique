@@ -1,4 +1,4 @@
-export type SupportedLanguage = 'fr' | 'en' | 'es' | 'it' | 'de' | 'pt';
+export type SupportedLanguage = 'fr' | 'en' | 'es' | 'it' | 'de' | 'pt' | 'no';
 
 export interface LanguageInfo {
   code: SupportedLanguage;
@@ -50,5 +50,12 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
     nativeName: 'Português',
     flag: '🇵🇹',
     countryCode: 'PT',
+  },
+  {
+    code: 'no',
+    name: 'Norvégien',
+    nativeName: 'Norsk',
+    flag: '🇳🇴',
+    countryCode: 'NO',
   },
 ];

@@ -15,7 +15,7 @@ const STORAGE_LANG_KEY = 'dermesthetic_language_v1';
 const getInitialLanguage = (): SupportedLanguage => {
   try {
     const saved = localStorage.getItem(STORAGE_LANG_KEY);
-    if (saved && (saved === 'fr' || saved === 'en' || saved === 'es' || saved === 'it' || saved === 'de' || saved === 'pt')) {
+    if (saved && (saved === 'fr' || saved === 'en' || saved === 'es' || saved === 'it' || saved === 'de' || saved === 'pt' || saved === 'no')) {
       return saved as SupportedLanguage;
     }
 
@@ -26,6 +26,7 @@ const getInitialLanguage = (): SupportedLanguage => {
     if (browserLang.startsWith('it')) return 'it';
     if (browserLang.startsWith('de')) return 'de';
     if (browserLang.startsWith('pt')) return 'pt';
+    if (browserLang.startsWith('no') || browserLang.startsWith('nb') || browserLang.startsWith('nn')) return 'no';
     return 'fr';
   } catch {
     return 'fr';

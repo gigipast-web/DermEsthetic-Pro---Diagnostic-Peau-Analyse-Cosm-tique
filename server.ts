@@ -363,6 +363,7 @@ app.post('/api/gemini/skin-analysis', async (req, res) => {
       it: 'Redigi OBBLIGATORIAMENTE tutte le analisi, protocolli, passaggi in cabina, prescrizione e consigli in ITALIANO professionale.',
       de: 'Verfasse ALLE Analysen, Protokolle, Behandlungsschritte, Heimpflege-Verschreibungen und Ratschläge auf professionellem DEUTSCH.',
       pt: 'Redija OBRIGATORIAMENTE todas as análises, protocolos de cabine, prescrição de cuidados e conselhos em PORTUGUÊS profissional.',
+      no: 'Skriv OBLIGATORISK alle sammendrag, titler, salongprotokoller, behandlingstrinn, hjemmeprogrammer og faglige råd på profesjonelt og presist NORSK.',
     };
     const langRule = langInstructions[language] || langInstructions.fr;
 
@@ -469,6 +470,7 @@ app.post('/api/gemini/product-analysis', async (req, res) => {
       it: 'Redigi OBBLIGATORIAMENTE il riassunto, le spiegazioni tossicologiche, il verdetto professionale e le recensioni in ITALIANO.',
       de: 'Verfasse ALLE Zusammenfassungen, toxikologischen Erklärungen, Gefahren, das Expertenurteil und Bewertungen auf DEUTSCH.',
       pt: 'Redija OBRIGATORIAMENTE o resumo, as explicações toxicológicas, o parecer profissional e as avaliações em PORTUGUÊS.',
+      no: 'Skriv OBLIGATORISK sammendraget, toksikologiske forklaringer, farevurderinger, faglig vurdering og anmeldelser på NORSK.',
     };
     const langRule = langInstructions[language] || langInstructions.fr;
 
